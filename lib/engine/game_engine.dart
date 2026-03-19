@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:start_hack_2026/domain/entities/character.dart';
 import 'package:start_hack_2026/domain/entities/character_stats.dart';
 import 'package:start_hack_2026/domain/entities/owned_item.dart';
@@ -325,7 +326,11 @@ class GameEngine {
     );
   }
 
-  Stream<SimulationResult> startSimulation(List<Map<String, dynamic>> events) {
+  Stream<SimulationResult> startSimulation(
+    List<Map<String, dynamic>> events, {
+    ValueNotifier<double>? speedMultiplier,
+    ValueNotifier<bool>? skipToEnd,
+  }) {
     if (_state == null) {
       return Stream.empty();
     }
@@ -341,6 +346,8 @@ class GameEngine {
       cash: _state!.cash,
       holdings: _state!.holdings,
       eventsConfig: events,
+      speedMultiplier: speedMultiplier,
+      skipToEnd: skipToEnd,
     );
   }
 

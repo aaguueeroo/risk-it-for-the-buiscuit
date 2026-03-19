@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:start_hack_2026/domain/entities/character_stats.dart';
 import 'package:start_hack_2026/domain/entities/simulation_event.dart';
 import 'package:start_hack_2026/engine/calculation_engine.dart';
@@ -79,6 +80,8 @@ class SimulationEngine {
     required int cash,
     required Map<String, PortfolioAsset> holdings,
     required List<Map<String, dynamic>> eventsConfig,
+    ValueNotifier<double>? speedMultiplier,
+    ValueNotifier<bool>? skipToEnd,
   }) async* {
     final returnFactors = <String, double>{};
     for (final entry in holdings.entries) {
@@ -104,7 +107,14 @@ class SimulationEngine {
     const eventCooldownMonths = 2.0;
 
     for (var tick = 0; tick < totalTicks; tick++) {
-      await Future<void>.delayed(tickDuration);
+      final shouldSkip = skipToEnd?.value ?? false;
+      final multiplier = (speedMultiplier?.value ?? 1.0).clamp(0.25, 10.0);
+      final delay = shouldSkip
+          ? Duration.zero
+          : Duration(
+              milliseconds: (tickDuration.inMilliseconds / multiplier).round(),
+            );
+      await Future<void>.delayed(delay);
       currentMonth = (tick / ticksPerMonth).toDouble();
 
       // Remove expired events
@@ -112,7 +122,7 @@ class SimulationEngine {
 
       // Maybe trigger a new event (respect cooldown)
       final canTrigger = lastEventMonth == null ||
-          (currentMonth - lastEventMonth!) >= eventCooldownMonths;
+          (currentMonth - lastEventMonth) >= eventCooldownMonths;
       final newEventConfig = canTrigger
           ? _maybeTriggerEvent(eventPool, _random)
           : null;

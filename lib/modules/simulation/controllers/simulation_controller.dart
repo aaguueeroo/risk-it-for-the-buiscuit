@@ -17,6 +17,10 @@ class SimulationController extends ChangeNotifier {
   final GameEngine _gameEngine;
   final GameRepository _gameRepository;
   StreamSubscription<SimulationResult>? _subscription;
+  final ValueNotifier<double> _speedMultiplier = ValueNotifier<double>(1.0);
+  final ValueNotifier<bool> _skipToEnd = ValueNotifier<bool>(false);
+
+  static const double _acceleratedSpeedMultiplier = 4.0;
 
   List<SimulationDataPoint> _dataPoints = [];
   List<SimulationEvent> _events = [];
@@ -37,6 +41,16 @@ class SimulationController extends ChangeNotifier {
   /// Returns the currently active market events and their impact.
   List<ActiveEvent> getActiveEvents() => List.unmodifiable(_activeEvents);
 
+  void setAccelerating(bool isAccelerating) {
+    _speedMultiplier.value = isAccelerating ? _acceleratedSpeedMultiplier : 1.0;
+  }
+
+  void skipToEnd() {
+    if (_status == SimulationStatus.running) {
+      _skipToEnd.value = true;
+    }
+  }
+
   Future<void> startSimulation() async {
     _status = SimulationStatus.running;
     _dataPoints = [];
@@ -45,9 +59,17 @@ class SimulationController extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
     try {
+      _skipToEnd.value = false;
+      _speedMultiplier.value = 1.0;
       final eventsConfig = await _gameRepository.getEvents();
       await _subscription?.cancel();
-      _subscription = _gameEngine.startSimulation(eventsConfig).listen(
+      _subscription = _gameEngine
+          .startSimulation(
+            eventsConfig,
+            speedMultiplier: _speedMultiplier,
+            skipToEnd: _skipToEnd,
+          )
+          .listen(
         (result) {
           _dataPoints.add(SimulationDataPoint(
             timestamp: result.timestamp,
@@ -104,6 +126,8 @@ class SimulationController extends ChangeNotifier {
   @override
   void dispose() {
     _subscription?.cancel();
+    _speedMultiplier.dispose();
+    _skipToEnd.dispose();
     super.dispose();
   }
 }

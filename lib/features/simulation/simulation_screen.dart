@@ -81,9 +81,23 @@ class _SimulationScreenState extends State<SimulationScreen> {
             );
           }
           final storeController = context.watch<StoreController>();
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(SpacingConstants.md),
-            child: Column(
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onPanDown: (_) {
+              if (controller.status == SimulationStatus.running) {
+                controller.setAccelerating(true);
+              }
+            },
+            onPanEnd: (_) => controller.setAccelerating(false),
+            onPanCancel: () => controller.setAccelerating(false),
+            onDoubleTap: () {
+              if (controller.status == SimulationStatus.running) {
+                controller.skipToEnd();
+              }
+            },
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(SpacingConstants.md),
+              child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 GameKeyFactorsBar(stats: storeController.stats),
@@ -137,6 +151,7 @@ class _SimulationScreenState extends State<SimulationScreen> {
                   ),
               ],
             ),
+          ),
           );
         },
       ),
