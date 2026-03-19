@@ -139,6 +139,15 @@ class GameEngine {
     return null;
   }
 
+  /// First empty slot, or merge target — matches [applyItemPurchase] placement.
+  int? getKnowledgePurchaseTargetSlot(StoreItemItem item) {
+    if (_state == null) return null;
+    final slots = _state!.itemSlots;
+    final firstEmpty = slots.indexWhere((s) => s == null);
+    if (firstEmpty >= 0) return firstEmpty;
+    return _findMergeTargetSlotForStoreItem(item);
+  }
+
   void applyItemPurchase(StoreItemItem item, List<StatSchema> schema) {
     if (_state == null) return;
     final slots = List<OwnedItem?>.from(_state!.itemSlots);

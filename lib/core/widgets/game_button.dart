@@ -46,7 +46,9 @@ class GameButton extends StatelessWidget {
                 ? gradient
                 : [Colors.grey.shade400, Colors.grey.shade600],
           ),
-          borderRadius: BorderRadius.circular(GameThemeConstants.radiusMedium),
+          borderRadius: BorderRadius.circular(
+            GameThemeConstants.radiusButtonStadium,
+          ),
           border: Border.all(
             color: GameThemeConstants.outlineColor,
             width: GameThemeConstants.outlineThickness,

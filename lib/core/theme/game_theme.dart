@@ -112,6 +112,11 @@ class GameTheme {
           ),
         ),
       ),
+      iconButtonTheme: IconButtonThemeData(
+        style: IconButton.styleFrom(
+          shape: const CircleBorder(),
+        ),
+      ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           elevation: 0,
@@ -120,7 +125,18 @@ class GameTheme {
             vertical: 16,
           ),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(GameThemeConstants.radiusMedium),
+            borderRadius: BorderRadius.circular(
+              GameThemeConstants.radiusButtonStadium,
+            ),
+          ),
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(
+              GameThemeConstants.radiusButtonStadium,
+            ),
           ),
         ),
       ),

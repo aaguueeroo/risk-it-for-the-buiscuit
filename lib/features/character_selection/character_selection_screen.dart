@@ -359,11 +359,13 @@ class _CharacterListItem extends StatelessWidget {
                 ),
               )
             : null,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Expanded(child: _buildCharacterAvatar(character)),
-            const SizedBox(height: SpacingConstants.xs),
+        child: Padding(
+          padding: const EdgeInsets.only(top: SpacingConstants.sm),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Expanded(child: _buildCharacterAvatar(character)),
+              const SizedBox(height: SpacingConstants.xs),
             Text(
               character.name,
               style: Theme.of(
@@ -374,6 +376,7 @@ class _CharacterListItem extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ],
+          ),
         ),
       ),
     );

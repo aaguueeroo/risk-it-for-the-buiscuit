@@ -10,9 +10,9 @@ import 'package:start_hack_2026/engine/game_engine.dart';
 /// Allocation percentage per asset buy (10% of total capital).
 const int _allocationPercentPerBuy = 10;
 
-/// Reshuffle cost progression: 1000 -> 2000 -> 5000 (capped).
+/// Reshuffle cost progression: 1000 -> 2000 -> 5000, then +2000 per reshuffle.
 const List<int> _reshuffleCosts = [1000, 2000, 5000];
-const int _maxReshuffleCost = 5000;
+const int _reshuffleCostIncrement = 2000;
 
 class StoreController extends ChangeNotifier {
   StoreController({
@@ -79,10 +79,12 @@ class StoreController extends ChangeNotifier {
   }
 
   int get reshuffleCost {
-    if (_reshuffleCount >= _reshuffleCosts.length) {
-      return _maxReshuffleCost;
+    if (_reshuffleCount < _reshuffleCosts.length) {
+      return _reshuffleCosts[_reshuffleCount];
     }
-    return _reshuffleCosts[_reshuffleCount];
+    final baseCost = _reshuffleCosts.last;
+    final extraReshuffles = _reshuffleCount - _reshuffleCosts.length;
+    return baseCost + (_reshuffleCostIncrement * extraReshuffles);
   }
 
   bool get canReshuffle => _gameEngine.currentCash >= reshuffleCost;
@@ -124,6 +126,12 @@ class StoreController extends ChangeNotifier {
         return _canBuyAsset(item);
     }
   }
+
+  int? getKnowledgePurchaseTargetSlot(StoreItemItem item) =>
+      _gameEngine.getKnowledgePurchaseTargetSlot(item);
+
+  bool hasExistingAssetHolding(String assetId) =>
+      _gameEngine.currentHoldings.containsKey(assetId);
 
   bool _canBuyAsset(StoreItemAsset asset) {
     if (remainingAllocationPercent < _allocationPercentPerBuy) return false;

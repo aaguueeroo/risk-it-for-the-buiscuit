@@ -50,4 +50,23 @@ abstract final class GameThemeConstants {
   static const double radiusLarge = 20.0;
   static const double radiusMedium = 16.0;
   static const double radiusSmall = 12.0;
+
+  /// Stadium / pill shape: large radius so ends are fully circular for any button height.
+  static const double radiusButtonStadium = 9999.0;
+
+  /// Store: fly item from offer grid to knowledge/assets (fast, not distracting).
+  static const Duration storePurchaseFlyDuration = Duration(milliseconds: 420);
+
+  /// Simulation chart: smooth extension when each new portfolio sample arrives.
+  static const Duration simulationChartTailDuration = Duration(milliseconds: 220);
+
+  /// Simulation chart: event marker scale + glow intro.
+  static const Duration simulationEventDotIntroDuration = Duration(milliseconds: 1400);
+
+  /// Simulation events list: spring scale entrance per row.
+  static const Duration simulationEventListItemEnterDuration =
+      Duration(milliseconds: 520);
+
+  /// Delay between consecutive event rows (stagger), in milliseconds.
+  static const int simulationEventListStaggerMs = 48;
 }

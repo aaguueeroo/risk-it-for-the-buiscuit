@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -10,6 +12,9 @@ import 'package:start_hack_2026/domain/entities/simulation_event.dart'
     show SimulationDataPoint, SimulationEvent, SimulationEventType;
 import 'package:start_hack_2026/modules/simulation/controllers/simulation_controller.dart';
 import 'package:start_hack_2026/modules/store/controllers/store_controller.dart';
+
+String _simulationEventAnimationKey(SimulationEvent e) =>
+    '${e.timestamp}_${e.type.name}_${e.title}';
 
 class SimulationScreen extends StatefulWidget {
   const SimulationScreen({super.key});
@@ -69,7 +74,7 @@ class _SimulationScreenState extends State<SimulationScreen> {
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: SpacingConstants.md),
-                        GameButton(
+                      GameButton(
                         label: 'Back to Store',
                         onPressed: () async {
                           await context
@@ -111,9 +116,7 @@ class _SimulationScreenState extends State<SimulationScreen> {
                             Text(
                               'Year ${controller.status == SimulationStatus.complete ? controller.currentYear - 1 : controller.currentYear}',
                               style: Theme.of(context).textTheme.titleLarge
-                                  ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                                  ?.copyWith(fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: SpacingConstants.sm),
                             if (controller.status == SimulationStatus.running)
@@ -121,8 +124,8 @@ class _SimulationScreenState extends State<SimulationScreen> {
                                 'Simulation in progress...',
                                 style: Theme.of(context).textTheme.bodyMedium
                                     ?.copyWith(
-                                  color: GameThemeConstants.accentDark,
-                                ),
+                                      color: GameThemeConstants.accentDark,
+                                    ),
                               )
                             else if (controller.status ==
                                 SimulationStatus.complete)
@@ -130,9 +133,9 @@ class _SimulationScreenState extends State<SimulationScreen> {
                                 'Simulation Complete',
                                 style: Theme.of(context).textTheme.bodyMedium
                                     ?.copyWith(
-                                  color: GameThemeConstants.successDark,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                      color: GameThemeConstants.successDark,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                               ),
                             const SizedBox(height: SpacingConstants.lg),
                             SizedBox(
@@ -142,17 +145,17 @@ class _SimulationScreenState extends State<SimulationScreen> {
                                 events: controller.events,
                                 currentYear:
                                     controller.status ==
-                                            SimulationStatus.complete
-                                        ? controller.currentYear - 1
-                                        : controller.currentYear,
+                                        SimulationStatus.complete
+                                    ? controller.currentYear - 1
+                                    : controller.currentYear,
                               ),
                             ),
                             _YearEventsList(
                               events: controller.events,
                               currentYear:
                                   controller.status == SimulationStatus.complete
-                                      ? controller.currentYear - 1
-                                      : controller.currentYear,
+                                  ? controller.currentYear - 1
+                                  : controller.currentYear,
                             ),
                           ],
                         ),
@@ -194,10 +197,7 @@ class _SimulationScreenState extends State<SimulationScreen> {
 }
 
 class _YearEventsList extends StatelessWidget {
-  const _YearEventsList({
-    required this.events,
-    required this.currentYear,
-  });
+  const _YearEventsList({required this.events, required this.currentYear});
 
   final List<SimulationEvent> events;
   final int currentYear;
@@ -223,15 +223,20 @@ class _YearEventsList extends StatelessWidget {
         const SizedBox(height: SpacingConstants.md),
         Text(
           'Events this year',
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: SpacingConstants.sm),
-        ...yearEvents.map(
-          (e) => Padding(
+        ...yearEvents.asMap().entries.map(
+          (MapEntry<int, SimulationEvent> e) => Padding(
+            key: ValueKey<String>(_simulationEventAnimationKey(e.value)),
             padding: const EdgeInsets.only(bottom: SpacingConstants.sm),
-            child: _YearEventTile(event: e, currentYear: currentYear),
+            child: _AnimatedYearEventTile(
+              event: e.value,
+              currentYear: currentYear,
+              staggerIndex: e.key,
+            ),
           ),
         ),
       ],
@@ -240,10 +245,7 @@ class _YearEventsList extends StatelessWidget {
 }
 
 class _YearEventTile extends StatelessWidget {
-  const _YearEventTile({
-    required this.event,
-    required this.currentYear,
-  });
+  const _YearEventTile({required this.event, required this.currentYear});
 
   final SimulationEvent event;
   final int currentYear;
@@ -328,6 +330,187 @@ class _YearEventTile extends StatelessWidget {
   }
 }
 
+/// Event markers: elastic scale-in, then a few glow pulses before settling.
+class _PulsingEventDotPainter extends FlDotPainter {
+  _PulsingEventDotPainter({
+    required this.introT,
+    required this.color,
+    required this.strokeColor,
+    required this.baseRadius,
+    required this.strokeWidth,
+  });
+
+  final double introT;
+  final Color color;
+  final Color strokeColor;
+  final double baseRadius;
+  final double strokeWidth;
+
+  static double _scaleCurve(double introT) {
+    const double window = 0.24;
+    if (introT < window) {
+      return Curves.elasticOut.transform(introT / window);
+    }
+    return 1.0;
+  }
+
+  static double _glowCurve(double introT) {
+    const double window = 0.24;
+    if (introT <= window) {
+      return 0.0;
+    }
+    final double u = (introT - window) / (1.0 - window);
+    final double envelope = math.pow(1.0 - u, 0.85).toDouble();
+    final double wave = (math.sin(u * math.pi * 4) * 0.5 + 0.5) * envelope;
+    return wave.clamp(0.0, 1.0);
+  }
+
+  @override
+  void draw(Canvas canvas, FlSpot spot, Offset offsetInCanvas) {
+    final double scale = _scaleCurve(introT).clamp(0.0, 1.2);
+    final double glow = _glowCurve(introT);
+    final double r = baseRadius * scale;
+    if (glow > 0.02) {
+      final double glowR = r + baseRadius * (0.55 + glow * 1.15);
+      canvas.drawCircle(
+        offsetInCanvas,
+        glowR,
+        Paint()
+          ..color = color.withValues(alpha: 0.28 * glow)
+          ..style = PaintingStyle.fill
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
+      );
+      canvas.drawCircle(
+        offsetInCanvas,
+        r + 2 + glow * 6,
+        Paint()
+          ..color = color.withValues(alpha: 0.2 * glow)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.5,
+      );
+    }
+    if (strokeWidth != 0.0 && strokeColor.a != 0.0) {
+      canvas.drawCircle(
+        offsetInCanvas,
+        r + (strokeWidth / 2),
+        Paint()
+          ..color = strokeColor
+          ..strokeWidth = strokeWidth
+          ..style = PaintingStyle.stroke,
+      );
+    }
+    canvas.drawCircle(
+      offsetInCanvas,
+      r,
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.fill,
+    );
+  }
+
+  @override
+  Size getSize(FlSpot spot) {
+    final double scale = _scaleCurve(introT).clamp(0.0, 1.2);
+    final double glow = _glowCurve(introT);
+    final double r = baseRadius * scale;
+    final double glowR = glow > 0.02
+        ? r + baseRadius * (0.55 + glow * 1.15) + 6
+        : r;
+    final double hit = math.max(r + strokeWidth, glowR);
+    return Size(hit * 2, hit * 2);
+  }
+
+  @override
+  Color get mainColor => color;
+
+  @override
+  FlDotPainter lerp(FlDotPainter a, FlDotPainter b, double t) => b;
+
+  @override
+  List<Object?> get props => <Object?>[
+    introT,
+    color,
+    strokeColor,
+    baseRadius,
+    strokeWidth,
+  ];
+}
+
+class _AnimatedYearEventTile extends StatefulWidget {
+  const _AnimatedYearEventTile({
+    required this.event,
+    required this.currentYear,
+    required this.staggerIndex,
+  });
+
+  final SimulationEvent event;
+  final int currentYear;
+  final int staggerIndex;
+
+  @override
+  State<_AnimatedYearEventTile> createState() => _AnimatedYearEventTileState();
+}
+
+class _AnimatedYearEventTileState extends State<_AnimatedYearEventTile>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _enterController;
+  late final Animation<double> _scale;
+  late final Animation<double> _opacity;
+
+  @override
+  void initState() {
+    super.initState();
+    _enterController = AnimationController(
+      vsync: this,
+      duration: GameThemeConstants.simulationEventListItemEnterDuration,
+    );
+    _scale = CurvedAnimation(
+      parent: _enterController,
+      curve: Curves.easeOutBack,
+    );
+    _opacity = CurvedAnimation(
+      parent: _enterController,
+      curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final int delayMs =
+          widget.staggerIndex * GameThemeConstants.simulationEventListStaggerMs;
+      Future<void>.delayed(Duration(milliseconds: delayMs), () {
+        if (mounted) {
+          _enterController.forward();
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _enterController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _enterController,
+      builder: (BuildContext context, Widget? child) {
+        return Opacity(
+          opacity: _opacity.value,
+          child: Transform.scale(
+            scale: math.max(0.001, _scale.value),
+            alignment: Alignment.center,
+            child: child,
+          ),
+        );
+      },
+      child: _YearEventTile(
+        event: widget.event,
+        currentYear: widget.currentYear,
+      ),
+    );
+  }
+}
+
 class _SimulationChart extends StatefulWidget {
   const _SimulationChart({
     required this.dataPoints,
@@ -343,11 +526,222 @@ class _SimulationChart extends StatefulWidget {
   State<_SimulationChart> createState() => _SimulationChartState();
 }
 
-class _SimulationChartState extends State<_SimulationChart> {
+class _SimulationChartState extends State<_SimulationChart>
+    with TickerProviderStateMixin {
   static const int _monthsPerYear = 12;
 
   final GlobalKey _chartKey = GlobalKey();
   OverlayEntry? _eventOverlayEntry;
+
+  late final AnimationController _tailController;
+  List<FlSpot> _displaySpots = <FlSpot>[];
+  int? _chartYearSynced;
+  List<FlSpot> _tailPrefix = <FlSpot>[];
+  FlSpot _tailStart = const FlSpot(0, 0);
+  FlSpot _tailEnd = const FlSpot(0, 0);
+
+  bool _didBulkSpotJump = false;
+  final Map<String, AnimationController> _eventDotIntroControllers =
+      <String, AnimationController>{};
+  final Set<String> _eventIntroForcedComplete = <String>{};
+  Set<String>? _lastEventKeysForDotIntro;
+
+  void _clearEventIntroState() {
+    for (final AnimationController c in _eventDotIntroControllers.values) {
+      c.dispose();
+    }
+    _eventDotIntroControllers.clear();
+    _eventIntroForcedComplete.clear();
+    _lastEventKeysForDotIntro = null;
+  }
+
+  void _syncEventIntroAnimations(
+    Map<int, SimulationEvent> eventSpotMap, {
+    required bool bulkSpotJump,
+  }) {
+    final Set<String> currentAllKeys = widget.events
+        .map(_simulationEventAnimationKey)
+        .toSet();
+
+    void markSpotEventsForcedComplete() {
+      for (final SimulationEvent e in eventSpotMap.values) {
+        final String k = _simulationEventAnimationKey(e);
+        _eventDotIntroControllers[k]?.dispose();
+        _eventDotIntroControllers.remove(k);
+        _eventIntroForcedComplete.add(k);
+      }
+    }
+
+    if (_lastEventKeysForDotIntro == null) {
+      _lastEventKeysForDotIntro = Set<String>.from(currentAllKeys);
+      if (bulkSpotJump) {
+        markSpotEventsForcedComplete();
+      } else {
+        for (final SimulationEvent e in eventSpotMap.values) {
+          _eventIntroForcedComplete.add(_simulationEventAnimationKey(e));
+        }
+      }
+      return;
+    }
+
+    if (bulkSpotJump) {
+      markSpotEventsForcedComplete();
+      _lastEventKeysForDotIntro = Set<String>.from(currentAllKeys);
+      return;
+    }
+
+    final Set<String> added = currentAllKeys.difference(
+      _lastEventKeysForDotIntro!,
+    );
+    _lastEventKeysForDotIntro = Set<String>.from(currentAllKeys);
+
+    for (final SimulationEvent e in eventSpotMap.values) {
+      final String k = _simulationEventAnimationKey(e);
+      if (_eventIntroForcedComplete.contains(k) ||
+          _eventDotIntroControllers.containsKey(k)) {
+        continue;
+      }
+      if (!added.contains(k)) {
+        _eventIntroForcedComplete.add(k);
+        continue;
+      }
+      final AnimationController controller =
+          AnimationController(
+            vsync: this,
+            duration: GameThemeConstants.simulationEventDotIntroDuration,
+          )..addListener(() {
+            if (mounted) {
+              setState(() {});
+            }
+          });
+      _eventDotIntroControllers[k] = controller;
+      controller.addStatusListener((AnimationStatus status) {
+        if (status == AnimationStatus.completed) {
+          controller.dispose();
+          _eventDotIntroControllers.remove(k);
+          _eventIntroForcedComplete.add(k);
+          if (mounted) {
+            setState(() {});
+          }
+        }
+      });
+      controller.forward();
+    }
+  }
+
+  double _eventDotIntroT(SimulationEvent event) {
+    final String k = _simulationEventAnimationKey(event);
+    if (_eventIntroForcedComplete.contains(k)) {
+      return 1.0;
+    }
+    final AnimationController? c = _eventDotIntroControllers[k];
+    return c?.value ?? 1.0;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _tailController = AnimationController(
+      vsync: this,
+      duration: GameThemeConstants.simulationChartTailDuration,
+    )..addListener(_handleTailTick);
+  }
+
+  void _handleTailTick() {
+    if (!mounted || !_tailController.isAnimating) {
+      return;
+    }
+    final double t = Curves.easeOutCubic.transform(_tailController.value);
+    final FlSpot tail = FlSpot.lerp(_tailStart, _tailEnd, t);
+    setState(() {
+      _displaySpots = <FlSpot>[..._tailPrefix, tail];
+    });
+  }
+
+  /// fl_chart snaps new spots instantly when the list grows; we animate the last segment here.
+  void _syncDisplayToTarget(List<FlSpot> target) {
+    if (!mounted) {
+      return;
+    }
+    _didBulkSpotJump = false;
+    if (widget.currentYear != _chartYearSynced) {
+      _tailController.stop();
+      _clearEventIntroState();
+      _chartYearSynced = widget.currentYear;
+      setState(() {
+        _displaySpots = target.isEmpty ? <FlSpot>[] : List<FlSpot>.from(target);
+      });
+      return;
+    }
+    if (target.isEmpty) {
+      if (_displaySpots.isNotEmpty) {
+        _tailController.stop();
+        setState(() => _displaySpots = <FlSpot>[]);
+      }
+      return;
+    }
+    if (_displaySpots.isEmpty) {
+      setState(() => _displaySpots = List<FlSpot>.from(target));
+      return;
+    }
+    if (target.length < _displaySpots.length) {
+      _tailController.stop();
+      setState(() => _displaySpots = List<FlSpot>.from(target));
+      return;
+    }
+    if (target.length == _displaySpots.length) {
+      if (_tailController.isAnimating) {
+        return;
+      }
+      setState(() => _displaySpots = List<FlSpot>.from(target));
+      return;
+    }
+    final int jump = target.length - _displaySpots.length;
+    if (jump > 1) {
+      _didBulkSpotJump = true;
+      _tailController.stop();
+      setState(() => _displaySpots = List<FlSpot>.from(target));
+      return;
+    }
+    if (_tailController.isAnimating) {
+      _tailController.stop();
+      setState(() {
+        _displaySpots = List<FlSpot>.from(target.sublist(0, target.length - 1));
+      });
+    }
+    _tailPrefix = List<FlSpot>.from(target.sublist(0, target.length - 1));
+    _tailStart = _tailPrefix.last;
+    _tailEnd = target.last;
+    _tailController.forward(from: 0);
+  }
+
+  List<FlSpot> _spotsForChart(List<FlSpot> targetSpots) {
+    if (targetSpots.isEmpty) {
+      return <FlSpot>[];
+    }
+    if (_displaySpots.isEmpty) {
+      return targetSpots;
+    }
+    return _displaySpots;
+  }
+
+  @override
+  void didUpdateWidget(_SimulationChart oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final bool yearChanged = oldWidget.currentYear != widget.currentYear;
+    _syncDisplayToTarget(_filterCurrentYear().spots);
+    final ({List<FlSpot> spots, List<SimulationEvent> yearEvents}) filtered =
+        _filterCurrentYear();
+    final List<FlSpot> chartSpots = _spotsForChart(filtered.spots);
+    final Map<int, SimulationEvent> eventSpotMap = _buildEventSpotMap(
+      chartSpots,
+      filtered.yearEvents,
+    );
+    _syncEventIntroAnimations(
+      eventSpotMap,
+      bulkSpotJump: _didBulkSpotJump || yearChanged,
+    );
+  }
 
   void _showEventOverlay(SimulationEvent event, Offset globalMarkerPosition) {
     _hideEventOverlay();
@@ -367,6 +761,13 @@ class _SimulationChartState extends State<_SimulationChart> {
     _eventOverlayEntry?.remove();
     _eventOverlayEntry = null;
     setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _tailController.dispose();
+    _clearEventIntroState();
+    super.dispose();
   }
 
   /// Returns data points and events for the current year only, with timestamps
@@ -451,8 +852,8 @@ class _SimulationChartState extends State<_SimulationChart> {
       );
     }
     final filtered = _filterCurrentYear();
-    final spots = filtered.spots;
-    if (spots.isEmpty) {
+    final List<FlSpot> targetSpots = filtered.spots;
+    if (targetSpots.isEmpty) {
       return Container(
         decoration: BoxDecoration(
           border: Border.all(color: Theme.of(context).colorScheme.outline),
@@ -468,12 +869,17 @@ class _SimulationChartState extends State<_SimulationChart> {
         ),
       );
     }
-    final minVal = spots.map((s) => s.y).reduce((a, b) => a < b ? a : b);
-    final maxVal = spots.map((s) => s.y).reduce((a, b) => a > b ? a : b);
+    final List<FlSpot> chartSpots = _spotsForChart(targetSpots);
+    final minVal = targetSpots
+        .map((FlSpot s) => s.y)
+        .reduce((a, b) => a < b ? a : b);
+    final maxVal = targetSpots
+        .map((FlSpot s) => s.y)
+        .reduce((a, b) => a > b ? a : b);
     final minY = (minVal * 0.95).clamp(0.0, double.infinity).toDouble();
     final maxY = (maxVal * 1.05).toDouble();
     final maxX = _monthsPerYear.toDouble();
-    final eventSpotMap = _buildEventSpotMap(spots, filtered.yearEvents);
+    final eventSpotMap = _buildEventSpotMap(chartSpots, filtered.yearEvents);
     final eventSpotIndices = eventSpotMap.keys.toSet();
 
     return GameCard(
@@ -515,105 +921,118 @@ class _SimulationChartState extends State<_SimulationChart> {
                     vertical: SpacingConstants.xs,
                   ),
                 ),
-                touchCallback: (FlTouchEvent event, LineTouchResponse? response) {
-                  if (response?.lineBarSpots == null ||
-                      response!.lineBarSpots!.isEmpty) {
-                    if (event is FlTapUpEvent || event is FlPanEndEvent) {
-                      _hideEventOverlay();
-                    }
-                    return;
-                  }
-                  final spot = response.lineBarSpots!.first;
-                  if (!eventSpotIndices.contains(spot.spotIndex)) {
-                    if (event is FlTapUpEvent || event is FlPanEndEvent) {
-                      _hideEventOverlay();
-                    }
-                    return;
-                  }
-                  final simulationEvent = eventSpotMap[spot.spotIndex];
-                  if (simulationEvent == null) return;
-                  if (event is FlTapDownEvent || event is FlPanDownEvent) {
-                    final renderBox = _chartKey.currentContext
-                        ?.findRenderObject() as RenderBox?;
-                    if (renderBox != null) {
-                      final localPos = _spotToLocalPosition(
-                        spot: FlSpot(spot.x, spot.y),
-                        chartSize: renderBox.size,
-                        minX: 0,
-                        maxX: maxX,
-                        minY: minY,
-                        maxY: maxY,
-                      );
-                      final globalPos = renderBox.localToGlobal(localPos);
-                      _showEventOverlay(simulationEvent, globalPos);
-                    }
-                  }
-                },
+                touchCallback:
+                    (FlTouchEvent event, LineTouchResponse? response) {
+                      if (response?.lineBarSpots == null ||
+                          response!.lineBarSpots!.isEmpty) {
+                        if (event is FlTapUpEvent || event is FlPanEndEvent) {
+                          _hideEventOverlay();
+                        }
+                        return;
+                      }
+                      final spot = response.lineBarSpots!.first;
+                      if (!eventSpotIndices.contains(spot.spotIndex)) {
+                        if (event is FlTapUpEvent || event is FlPanEndEvent) {
+                          _hideEventOverlay();
+                        }
+                        return;
+                      }
+                      final simulationEvent = eventSpotMap[spot.spotIndex];
+                      if (simulationEvent == null) return;
+                      if (event is FlTapDownEvent || event is FlPanDownEvent) {
+                        final renderBox =
+                            _chartKey.currentContext?.findRenderObject()
+                                as RenderBox?;
+                        if (renderBox != null) {
+                          final localPos = _spotToLocalPosition(
+                            spot: FlSpot(spot.x, spot.y),
+                            chartSize: renderBox.size,
+                            minX: 0,
+                            maxX: maxX,
+                            minY: minY,
+                            maxY: maxY,
+                          );
+                          final globalPos = renderBox.localToGlobal(localPos);
+                          _showEventOverlay(simulationEvent, globalPos);
+                        }
+                      }
+                    },
               ),
               lineBarsData: [
-              LineChartBarData(
-                spots: spots,
-                isCurved: true,
-                color: GameThemeConstants.primaryDark,
-                barWidth: 2,
-                dotData: FlDotData(
-                  show: true,
-                  getDotPainter: (spot, percent, barData, index) {
-                    final isEvent = eventSpotIndices.contains(index);
-                    return FlDotCirclePainter(
-                      radius: isEvent ? 5 : 0,
-                      color: _eventColor(
-                        eventSpotMap[index]?.type ?? SimulationEventType.world,
-                      ),
-                      strokeWidth: 2,
-                      strokeColor: GameThemeConstants.creamSurface,
-                    );
-                  },
-                ),
-                belowBarData: BarAreaData(
-                  show: true,
-                  color: GameThemeConstants.primaryDark.withValues(alpha: 0.2),
-                ),
-              ),
-            ],
-            titlesData: FlTitlesData(
-              leftTitles: AxisTitles(
-                sideTitles: SideTitles(
-                  showTitles: true,
-                  reservedSize: 40,
-                  getTitlesWidget: (value, meta) => Text(
-                    value.toInt().toString(),
-                    style: const TextStyle(fontSize: 10),
+                LineChartBarData(
+                  spots: chartSpots,
+                  isCurved: true,
+                  color: GameThemeConstants.primaryDark,
+                  barWidth: 2,
+                  dotData: FlDotData(
+                    show: true,
+                    getDotPainter: (spot, percent, barData, index) {
+                      final isEvent = eventSpotIndices.contains(index);
+                      if (!isEvent) {
+                        return FlDotCirclePainter(
+                          radius: 0,
+                          color: GameThemeConstants.primaryDark,
+                          strokeWidth: 0,
+                          strokeColor: GameThemeConstants.creamSurface,
+                        );
+                      }
+                      final SimulationEvent markerEvent = eventSpotMap[index]!;
+                      final double introT = _eventDotIntroT(markerEvent);
+                      return _PulsingEventDotPainter(
+                        introT: introT,
+                        color: _eventColor(markerEvent.type),
+                        strokeColor: GameThemeConstants.creamSurface,
+                        baseRadius: 5,
+                        strokeWidth: 2,
+                      );
+                    },
+                  ),
+                  belowBarData: BarAreaData(
+                    show: true,
+                    color: GameThemeConstants.primaryDark.withValues(
+                      alpha: 0.2,
+                    ),
                   ),
                 ),
-              ),
-              bottomTitles: AxisTitles(
-                sideTitles: SideTitles(
-                  showTitles: true,
-                  reservedSize: 24,
-                  getTitlesWidget: (value, meta) {
-                    final monthInYear = (value.toInt() + 1).clamp(1, 12);
-                    return Text(
-                      '$monthInYear',
+              ],
+              titlesData: FlTitlesData(
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 40,
+                    getTitlesWidget: (value, meta) => Text(
+                      value.toInt().toString(),
                       style: const TextStyle(fontSize: 10),
-                    );
-                  },
+                    ),
+                  ),
+                ),
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 24,
+                    getTitlesWidget: (value, meta) {
+                      final monthInYear = (value.toInt() + 1).clamp(1, 12);
+                      return Text(
+                        '$monthInYear',
+                        style: const TextStyle(fontSize: 10),
+                      );
+                    },
+                  ),
+                ),
+                topTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                rightTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
                 ),
               ),
-              topTitles: const AxisTitles(
-                sideTitles: SideTitles(showTitles: false),
-              ),
-              rightTitles: const AxisTitles(
-                sideTitles: SideTitles(showTitles: false),
-              ),
+              gridData: FlGridData(show: true),
+              borderData: FlBorderData(show: true),
             ),
-            gridData: FlGridData(show: true),
-            borderData: FlBorderData(show: true),
+            duration: Duration.zero,
           ),
-          duration: const Duration(milliseconds: 150),
         ),
       ),
-    ),
     );
   }
 
@@ -664,20 +1083,14 @@ class _EventPopupOverlayState extends State<_EventPopupOverlay> {
             child: const SizedBox.expand(),
           ),
         ),
-        _EventPopup(
-          event: widget.event,
-          markerPosition: widget.markerPosition,
-        ),
+        _EventPopup(event: widget.event, markerPosition: widget.markerPosition),
       ],
     );
   }
 }
 
 class _EventPopup extends StatelessWidget {
-  const _EventPopup({
-    required this.event,
-    required this.markerPosition,
-  });
+  const _EventPopup({required this.event, required this.markerPosition});
 
   final SimulationEvent event;
   final Offset markerPosition;
@@ -796,9 +1209,7 @@ class _EventPopupContent extends StatelessWidget {
       padding: const EdgeInsets.all(SpacingConstants.sm),
       decoration: BoxDecoration(
         color: GameThemeConstants.creamSurface,
-        borderRadius: BorderRadius.circular(
-          GameThemeConstants.radiusMedium,
-        ),
+        borderRadius: BorderRadius.circular(GameThemeConstants.radiusMedium),
         border: Border.all(
           color: GameThemeConstants.outlineColor,
           width: GameThemeConstants.outlineThickness,
@@ -819,14 +1230,12 @@ class _EventPopupContent extends StatelessWidget {
           Text(
             event.title,
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+              color: Theme.of(context).colorScheme.primary,
+              fontWeight: FontWeight.w800,
+            ),
           ),
           const SizedBox(height: SpacingConstants.xs),
-          Text(
-            event.description,
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
+          Text(event.description, style: Theme.of(context).textTheme.bodySmall),
           if (event.type == SimulationEventType.panicSell &&
               event.panicSellAmount != null &&
               event.panicSellLoss != null) ...[
@@ -837,13 +1246,6 @@ class _EventPopupContent extends StatelessWidget {
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
-          const SizedBox(height: SpacingConstants.xs),
-          Text(
-            'Portfolio: \$${event.portfolioValueAtEvent.toStringAsFixed(0)}',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-          ),
         ],
       ),
     );
