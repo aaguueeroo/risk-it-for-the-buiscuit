@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:start_hack_2026/core/constants/character_image_constants.dart';
+import 'package:start_hack_2026/core/constants/character_neutral_stats.dart';
 import 'package:start_hack_2026/core/constants/game_theme_constants.dart';
 import 'package:start_hack_2026/core/constants/spacing_constants.dart';
 import 'package:start_hack_2026/core/extensions/icon_extension.dart';
@@ -12,6 +14,7 @@ import 'package:start_hack_2026/core/widgets/game_button.dart';
 import 'package:start_hack_2026/core/widgets/game_card.dart';
 import 'package:start_hack_2026/core/widgets/portfolio_evolution_chart.dart';
 import 'package:start_hack_2026/core/widgets/game_progress_indicator.dart';
+import 'package:start_hack_2026/domain/entities/character.dart';
 import 'package:start_hack_2026/domain/entities/owned_item.dart';
 import 'package:start_hack_2026/domain/entities/stat_schema.dart';
 import 'package:start_hack_2026/domain/entities/store_item.dart';
@@ -22,6 +25,8 @@ import 'package:start_hack_2026/modules/store/controllers/store_controller.dart'
 
 const String _coinAssetPath = 'assets/images/coin.png';
 const String _allocationChartAssetPath = 'assets/images/chart.png';
+
+enum _StoreHudPanel { character }
 
 double? _getBaselineValueForComparison(StoreController controller) {
   final currentYear = controller.currentYear;
@@ -72,6 +77,7 @@ class _StoreScreenState extends State<StoreScreen> {
   final GlobalKey _portfolioButtonKey = GlobalKey();
   final GlobalKey _purchaseFlyStackKey = GlobalKey();
   OverlayEntry? _portfolioOverlayEntry;
+  _StoreHudPanel? _activeHudPanel;
   late final List<GlobalKey> _itemSlotKeys;
   final GlobalKey _assetSectionContentKey = GlobalKey();
   final Map<String, GlobalKey> _storeCardKeys = <String, GlobalKey>{};
@@ -223,47 +229,19 @@ class _StoreScreenState extends State<StoreScreen> {
     return Consumer<StoreController>(
       builder: (context, controller, _) {
         final double safeBottomInset = MediaQuery.paddingOf(context).bottom;
-        final double storePlayButtonHeight =
+        const double storeBottomBarHeight =
             SpacingConstants.md * 2 +
             SpacingConstants.xl +
             GameThemeConstants.bevelOffset;
         final double storeScrollBottomPadding =
             safeBottomInset +
             SpacingConstants.md +
-            storePlayButtonHeight +
+            storeBottomBarHeight +
             SpacingConstants.sm;
         return Scaffold(
-          appBar: AppBar(
-            title: const Text('Store'),
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back),
-              onPressed: () => context.pop(),
-            ),
-            actions: [
-              GestureDetector(
-                onLongPressDown: (_) =>
-                    _showPortfolioOverlay(context, controller),
-                onLongPressUp: _hidePortfolioOverlay,
-                onLongPressCancel: _hidePortfolioOverlay,
-                child: SizedBox(
-                  key: _portfolioButtonKey,
-                  width: 48,
-                  height: 48,
-                  child: IconButton(
-                    icon: const Icon(Icons.show_chart),
-                    onPressed: () {},
-                  ),
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.bug_report),
-                onPressed: () => context.push('/simulation-debug'),
-                tooltip: 'Debug',
-              ),
-            ],
-          ),
-          body: Container(
-            decoration: const BoxDecoration(
+          body: SafeArea(
+            child: Container(
+              decoration: const BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
@@ -361,6 +339,7 @@ class _StoreScreenState extends State<StoreScreen> {
                                     onCombine: controller.combineItems,
                                     canCombine: controller.canCombineItems,
                                   ),
+                                  const SizedBox(height: SpacingConstants.sm),
                                   _StoreStatsPanel(
                                     stats: controller.stats,
                                     statSchemas: _filterStoreStatsByCategory(
@@ -409,31 +388,314 @@ class _StoreScreenState extends State<StoreScreen> {
                         left: SpacingConstants.md,
                         right: SpacingConstants.md,
                         bottom: safeBottomInset + SpacingConstants.md,
-                        child: GameButton(
-                          label: controller.hasReachedRoundLimit
-                              ? 'View Results'
-                              : 'Play',
-                          icon: controller.hasReachedRoundLimit
-                              ? Icons.emoji_events
-                              : null,
-                          iconWidget: controller.hasReachedRoundLimit
-                              ? null
-                              : const CartoonPlayIcon(),
-                          onPressed: () {
-                            if (controller.hasReachedRoundLimit) {
-                              context.pushReplacement('/game-won');
-                              return;
-                            }
-                            context.push('/simulation');
-                          },
-                          variant: GameButtonVariant.success,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: GameButton(
+                                label: controller.hasReachedRoundLimit
+                                    ? 'View Results'
+                                    : 'Play',
+                                icon: controller.hasReachedRoundLimit
+                                    ? Icons.emoji_events
+                                    : null,
+                                iconWidget: controller.hasReachedRoundLimit
+                                    ? null
+                                    : const CartoonPlayIcon(),
+                                onPressed: () {
+                                  if (controller.hasReachedRoundLimit) {
+                                    context.pushReplacement('/game-won');
+                                    return;
+                                  }
+                                  context.push('/simulation');
+                                },
+                                variant: GameButtonVariant.success,
+                                isFullWidth: false,
+                              ),
+                            ),
+                            const SizedBox(width: SpacingConstants.sm),
+                            GestureDetector(
+                              onLongPressDown: (_) =>
+                                  _showPortfolioOverlay(context, controller),
+                              onLongPressUp: _hidePortfolioOverlay,
+                              onLongPressCancel: _hidePortfolioOverlay,
+                              child: SizedBox(
+                                key: _portfolioButtonKey,
+                                width: 52,
+                                height: 52,
+                                child: const _CartoonCircleButton(
+                                  icon: Icons.show_chart,
+                                  onPressed: null,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: SpacingConstants.sm),
+                            _CartoonCircleButton(
+                              icon: Icons.person,
+                              onPressed: () {
+                                setState(() {
+                                  _activeHudPanel =
+                                      _activeHudPanel == _StoreHudPanel.character
+                                          ? null
+                                          : _StoreHudPanel.character;
+                                });
+                              },
+                            ),
+                          ],
                         ),
                       ),
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: SafeArea(
+                          bottom: false,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.bug_report),
+                                onPressed: () =>
+                                    context.push('/simulation-debug'),
+                                tooltip: 'Debug',
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      if (_activeHudPanel != null)
+                        _StoreHudOverlay(
+                          controller: controller,
+                          bottomBarHeight: storeBottomBarHeight,
+                          safeBottomInset: safeBottomInset,
+                          onDismiss: () =>
+                              setState(() => _activeHudPanel = null),
+                        ),
                     ],
                   ),
+            ),
           ),
         );
       },
+    );
+  }
+}
+
+class _StoreHudOverlay extends StatelessWidget {
+  const _StoreHudOverlay({
+    required this.controller,
+    required this.bottomBarHeight,
+    required this.safeBottomInset,
+    required this.onDismiss,
+  });
+
+  final StoreController controller;
+  final double bottomBarHeight;
+  final double safeBottomInset;
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final maxPopupHeight = screenHeight * 0.6;
+    final popupBottom = safeBottomInset + SpacingConstants.md + bottomBarHeight +
+        SpacingConstants.sm;
+    return Positioned.fill(
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: Listener(
+              onPointerUp: (_) => onDismiss(),
+              behavior: HitTestBehavior.translucent,
+              child: const SizedBox.expand(),
+            ),
+          ),
+          Positioned(
+            left: SpacingConstants.md,
+            right: SpacingConstants.md,
+            bottom: popupBottom,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: maxPopupHeight),
+              child: GameCard(
+                child: SingleChildScrollView(
+                  child: _StoreHudCharacterContent(
+                    character: controller.character!,
+                    statsSchema: controller.statsSchema,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StoreHudCharacterContent extends StatelessWidget {
+  const _StoreHudCharacterContent({
+    required this.character,
+    required this.statsSchema,
+  });
+
+  final Character character;
+  final List<StatSchema> statsSchema;
+
+  String _getStatDisplayName(String statId) {
+    final schema = statsSchema.where((s) => s.id == statId).firstOrNull;
+    return schema?.displayName ?? statId;
+  }
+
+  String _formatStatValue(String statId, num value) {
+    if (statId == 'money') {
+      return '\$${value.toStringAsFixed(0)}';
+    }
+    return value.toStringAsFixed(0);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final imagePath =
+        CharacterImageConstants.getImagePathForCharacter(character.id);
+    return Padding(
+      padding: const EdgeInsets.all(SpacingConstants.md),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            character.name,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: GameThemeConstants.primaryDark,
+            ),
+          ),
+          const SizedBox(height: SpacingConstants.sm),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: 80,
+                height: 80,
+                child: imagePath != null
+                    ? Image.asset(
+                        imagePath,
+                        fit: BoxFit.contain,
+                      )
+                    : Icon(
+                        character.icon.toIconData(),
+                        color: GameThemeConstants.primaryDark,
+                        size: 48,
+                      ),
+              ),
+              const SizedBox(width: SpacingConstants.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ...character.initialStats.entries
+                        .where(
+                          (e) => CharacterNeutralStats.differsFromNeutral(
+                            e.key,
+                            e.value,
+                          ),
+                        )
+                        .map(
+                          (e) => Padding(
+                            padding: const EdgeInsets.only(
+                              bottom: SpacingConstants.xs,
+                            ),
+                            child: Text(
+                              '${_getStatDisplayName(e.key)}: ${_formatStatValue(e.key, e.value)}',
+                              style:
+                                  Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: GameThemeConstants.primaryDark,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: SpacingConstants.sm),
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: SpacingConstants.sm,
+              vertical: SpacingConstants.xs,
+            ),
+            decoration: BoxDecoration(
+              color: GameThemeConstants.accentLight.withValues(alpha: 0.3),
+              borderRadius:
+                  BorderRadius.circular(SpacingConstants.gameRadiusSm),
+              border: Border.all(
+                color: GameThemeConstants.outlineColor,
+                width: GameThemeConstants.outlineThicknessSmall,
+              ),
+            ),
+            child: Text(
+              character.uniqueSkill,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+                color: GameThemeConstants.outlineColorLight,
+              ),
+              textAlign: TextAlign.left,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CartoonCircleButton extends StatelessWidget {
+  const _CartoonCircleButton({
+    required this.icon,
+    this.onPressed,
+  });
+
+  final IconData icon;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    const size = 52.0;
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              GameThemeConstants.primaryLight,
+              GameThemeConstants.primaryDark,
+            ],
+          ),
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: GameThemeConstants.outlineColor,
+            width: GameThemeConstants.outlineThickness,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF3D2E8C),
+              offset: const Offset(0, GameThemeConstants.bevelOffset),
+              blurRadius: 0,
+              spreadRadius: 0,
+            ),
+          ],
+        ),
+        child: Icon(
+          icon,
+          color: Colors.white,
+          size: 26,
+        ),
+      ),
     );
   }
 }
