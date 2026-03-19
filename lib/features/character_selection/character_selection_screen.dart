@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:start_hack_2026/core/constants/character_image_constants.dart';
 import 'package:start_hack_2026/core/constants/character_neutral_stats.dart';
 import 'package:start_hack_2026/core/constants/game_theme_constants.dart';
 import 'package:start_hack_2026/core/constants/spacing_constants.dart';
@@ -10,6 +11,24 @@ import 'package:start_hack_2026/core/widgets/game_card.dart';
 import 'package:start_hack_2026/core/widgets/game_progress_indicator.dart';
 import 'package:start_hack_2026/domain/entities/character.dart';
 import 'package:start_hack_2026/modules/game/controllers/game_controller.dart';
+
+Widget _buildCharacterAvatar(Character character) {
+  final imagePath = CharacterImageConstants.getImagePathForCharacter(
+    character.id,
+  );
+  if (imagePath != null) {
+    return Image.asset(
+      imagePath,
+      fit: BoxFit.contain,
+      width: double.infinity,
+      height: double.infinity,
+    );
+  }
+  return Icon(
+    character.icon.toIconData(),
+    color: GameThemeConstants.primaryDark,
+  );
+}
 
 const Map<String, String> _statDisplayNames = {
   'money': 'Money',
@@ -228,16 +247,7 @@ class _SelectedCharacterSlot extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Expanded(
-                  child: Center(
-                    child: FittedBox(
-                      fit: BoxFit.contain,
-                      child: Icon(
-                        character.icon.toIconData(),
-                        size: 200,
-                        color: GameThemeConstants.primaryDark,
-                      ),
-                    ),
-                  ),
+                  child: Center(child: _buildCharacterAvatar(character)),
                 ),
                 Padding(
                   padding: const EdgeInsets.only(bottom: SpacingConstants.xs),
@@ -260,23 +270,27 @@ class _SelectedCharacterSlot extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 ...character.initialStats.entries
-                    .where((entry) =>
-                        CharacterNeutralStats.differsFromNeutral(
-                          entry.key,
-                          entry.value,
-                        ))
-                    .map((entry) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: SpacingConstants.xs),
-                    child: Text(
-                      '${onStatDisplayName(entry.key)}: ${_formatStatValue(entry.key, entry.value)}',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: GameThemeConstants.primaryDark,
-                        fontWeight: FontWeight.w500,
+                    .where(
+                      (entry) => CharacterNeutralStats.differsFromNeutral(
+                        entry.key,
+                        entry.value,
                       ),
-                    ),
-                  );
-                }),
+                    )
+                    .map((entry) {
+                      return Padding(
+                        padding: const EdgeInsets.only(
+                          bottom: SpacingConstants.xs,
+                        ),
+                        child: Text(
+                          '${onStatDisplayName(entry.key)}: ${_formatStatValue(entry.key, entry.value)}',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: GameThemeConstants.primaryDark,
+                                fontWeight: FontWeight.w500,
+                              ),
+                        ),
+                      );
+                    }),
                 const SizedBox(height: SpacingConstants.sm),
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -348,11 +362,7 @@ class _CharacterListItem extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              character.icon.toIconData(),
-              size: 40,
-              color: GameThemeConstants.primaryDark,
-            ),
+            Expanded(child: _buildCharacterAvatar(character)),
             const SizedBox(height: SpacingConstants.xs),
             Text(
               character.name,

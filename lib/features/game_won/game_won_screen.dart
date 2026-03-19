@@ -21,10 +21,7 @@ class GameWonScreen extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              GameThemeConstants.creamBackground,
-              Color(0xFFF5EDE0),
-            ],
+            colors: [GameThemeConstants.creamBackground, Color(0xFFF5EDE0)],
           ),
         ),
         child: SafeArea(
@@ -61,8 +58,6 @@ class GameWonScreen extends StatelessWidget {
                       winMessage: winConditions?.winMessage ?? 'You won!',
                       characterName: character.name,
                     ),
-                    const SizedBox(height: 24),
-                    GameKeyFactorsBar(stats: storeController.stats),
                     const SizedBox(height: 16),
                     _PortfolioEvolutionSection(
                       portfolioHistory: portfolioHistory,
@@ -89,10 +84,7 @@ class GameWonScreen extends StatelessWidget {
 }
 
 class _WinHeader extends StatelessWidget {
-  const _WinHeader({
-    required this.winMessage,
-    required this.characterName,
-  });
+  const _WinHeader({required this.winMessage, required this.characterName});
 
   final String winMessage;
   final String characterName;
@@ -120,25 +112,25 @@ class _WinHeader extends StatelessWidget {
             Text(
               'Victory!',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: GameThemeConstants.successDark,
-                  ),
+                fontWeight: FontWeight.bold,
+                color: GameThemeConstants.successDark,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
               winMessage,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: GameThemeConstants.outlineColor,
-                  ),
+                color: GameThemeConstants.outlineColor,
+              ),
             ),
             const SizedBox(height: 4),
             Text(
               '— $characterName',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontStyle: FontStyle.italic,
-                    color: GameThemeConstants.outlineColorLight,
-                  ),
+                fontStyle: FontStyle.italic,
+                color: GameThemeConstants.outlineColorLight,
+              ),
             ),
           ],
         ),
@@ -170,9 +162,9 @@ class _PortfolioEvolutionSection extends StatelessWidget {
           children: [
             Text(
               'Portfolio Evolution',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             PortfolioEvolutionChart(dataPoints: portfolioHistory),
@@ -223,7 +215,8 @@ class _FinalStatsRow extends StatelessWidget {
         Expanded(
           child: _StatChip(
             label: 'Growth',
-            value: '${growthPercent >= 0 ? '+' : ''}${growthPercent.toStringAsFixed(1)}%',
+            value:
+                '${growthPercent >= 0 ? '+' : ''}${growthPercent.toStringAsFixed(1)}%',
             icon: Icons.trending_up,
             isPositive: growthPercent >= 0,
           ),
@@ -251,8 +244,8 @@ class _StatChip extends StatelessWidget {
     final valueColor = isPositive == null
         ? GameThemeConstants.primaryDark
         : isPositive!
-            ? GameThemeConstants.statPositive
-            : GameThemeConstants.statNegative;
+        ? GameThemeConstants.statPositive
+        : GameThemeConstants.statNegative;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
@@ -273,8 +266,8 @@ class _StatChip extends StatelessWidget {
               Text(
                 label,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: GameThemeConstants.outlineColorLight,
-                    ),
+                  color: GameThemeConstants.outlineColorLight,
+                ),
               ),
             ],
           ),
@@ -282,9 +275,9 @@ class _StatChip extends StatelessWidget {
           Text(
             value,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: valueColor,
-                ),
+              fontWeight: FontWeight.w600,
+              color: valueColor,
+            ),
           ),
         ],
       ),

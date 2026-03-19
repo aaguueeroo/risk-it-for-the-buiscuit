@@ -2,7 +2,7 @@
   "characters": [
     {
       "id": "young_investor",
-      "name": "Young Investor",
+      "name": "Diamond Hands Jr",
       "icon": "school",
       "uniqueSkill": "Long horizon, compound growth advantage",
       "winConditions": {
@@ -33,7 +33,7 @@
     },
     {
       "id": "middle_aged",
-      "name": "Middle-Aged",
+      "name": "Middle Age Crisis",
       "icon": "balance",
       "uniqueSkill": "Dual income, balanced goals",
       "winConditions": {
@@ -65,7 +65,7 @@
     },
     {
       "id": "pre_retirement",
-      "name": "Pre-Retirement",
+      "name": "Almost Free",
       "icon": "shield",
       "uniqueSkill": "Capital preservation, lower volatility impact",
       "winConditions": {
@@ -96,7 +96,7 @@
     },
     {
       "id": "entrepreneur",
-      "name": "Entrepreneur",
+      "name": "Hustle Culture",
       "icon": "rocket_launch",
       "uniqueSkill": "Thrives on volatility, lumpy cash flows",
       "winConditions": {
@@ -127,7 +127,7 @@
     },
     {
       "id": "inheritor",
-      "name": "Inheritor",
+      "name": "Trust Fund Baby",
       "icon": "account_balance",
       "uniqueSkill": "Large lump sum, no income pressure",
       "winConditions": {

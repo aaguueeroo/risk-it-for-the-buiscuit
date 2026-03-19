@@ -15,7 +15,6 @@ import 'package:start_hack_2026/domain/entities/store_item.dart';
 import 'package:start_hack_2026/engine/calculation_engine.dart';
 import 'package:start_hack_2026/engine/game_engine.dart';
 import 'package:start_hack_2026/modules/store/controllers/store_controller.dart';
-import 'package:widget_tooltip/widget_tooltip.dart';
 
 double? _getBaselineValueForComparison(StoreController controller) {
   final currentYear = controller.currentYear;
@@ -200,7 +199,9 @@ class _StoreScreenState extends State<StoreScreen> {
                               controller.purchase(item, replaceAtIndex: index),
                           statsSchema: controller.statsSchema,
                           totalCapital: controller.currentPortfolioValue,
-                          baselineValue: _getBaselineValueForComparison(controller),
+                          baselineValue: _getBaselineValueForComparison(
+                            controller,
+                          ),
                           cash: controller.cash,
                         ),
                         const SizedBox(height: SpacingConstants.lg),
@@ -291,9 +292,7 @@ class _StatsOverlayState extends State<_StatsOverlay> {
               final popupWidth = screenWidth - (SpacingConstants.md * 2);
               const left = SpacingConstants.md;
               final arrowCenterX =
-                  _buttonPosition!.dx +
-                  _buttonSize!.width / 2 -
-                  left;
+                  _buttonPosition!.dx + _buttonSize!.width / 2 - left;
               return Positioned(
                 left: left,
                 top:
@@ -432,7 +431,10 @@ class _StatsPopup extends StatelessWidget {
             ),
           ),
           Container(
-            padding: const EdgeInsets.all(SpacingConstants.md),
+            padding: const EdgeInsets.symmetric(
+              vertical: SpacingConstants.lg,
+              horizontal: SpacingConstants.lg,
+            ),
             decoration: BoxDecoration(
               color: GameThemeConstants.creamSurface,
               borderRadius: BorderRadius.circular(
@@ -460,7 +462,7 @@ class _StatsPopup extends StatelessWidget {
                 Text(
                   'Stats',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
                 const SizedBox(height: SpacingConstants.sm),
@@ -475,14 +477,13 @@ class _StatsPopup extends StatelessWidget {
                             Text(
                               'Portfolio',
                               style: Theme.of(context).textTheme.titleSmall
-                                  ?.copyWith(fontWeight: FontWeight.w600),
+                                  ?.copyWith(fontWeight: FontWeight.w700),
                             ),
                             const SizedBox(height: SpacingConstants.xs),
                             ...portfolioStats.map(
                               (stat) => _StatRow(
                                 stat: stat,
                                 value: stats[stat.id] ?? 0,
-                                showInfoTooltip: false,
                                 icon: _statIcons[stat.id],
                               ),
                             ),
@@ -490,6 +491,7 @@ class _StatsPopup extends StatelessWidget {
                         ],
                       ),
                     ),
+                    const SizedBox(width: SpacingConstants.md),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -498,14 +500,13 @@ class _StatsPopup extends StatelessWidget {
                             Text(
                               'Personal',
                               style: Theme.of(context).textTheme.titleSmall
-                                  ?.copyWith(fontWeight: FontWeight.w600),
+                                  ?.copyWith(fontWeight: FontWeight.w700),
                             ),
                             const SizedBox(height: SpacingConstants.xs),
                             ...personalStats.map(
                               (stat) => _StatRow(
                                 stat: stat,
                                 value: stats[stat.id] ?? 0,
-                                showInfoTooltip: false,
                                 icon: _statIcons[stat.id],
                               ),
                             ),
@@ -593,9 +594,7 @@ class _PortfolioOverlayState extends State<_PortfolioOverlay> {
                 screenHeight - popupHeight - SpacingConstants.md,
               );
               final arrowCenterX =
-                  _buttonPosition!.dx +
-                  _buttonSize!.width / 2 -
-                  left;
+                  _buttonPosition!.dx + _buttonSize!.width / 2 - left;
               return Positioned(
                 left: left,
                 top: clampedTop,
@@ -780,8 +779,8 @@ class _BuySection extends StatelessWidget {
     final valueColor = isGrowing
         ? GameThemeConstants.statPositive
         : isDecreasing
-            ? GameThemeConstants.statNegative
-            : GameThemeConstants.primaryDark;
+        ? GameThemeConstants.statNegative
+        : GameThemeConstants.primaryDark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -806,8 +805,8 @@ class _BuySection extends StatelessWidget {
                       isGrowing
                           ? Icons.arrow_drop_up
                           : isDecreasing
-                              ? Icons.arrow_drop_down
-                              : Icons.remove,
+                          ? Icons.arrow_drop_down
+                          : Icons.remove,
                       size: 48,
                       color: valueColor,
                     ),
@@ -1623,16 +1622,10 @@ class _AssetSlotCard extends StatelessWidget {
 }
 
 class _StatRow extends StatelessWidget {
-  const _StatRow({
-    required this.stat,
-    required this.value,
-    this.showInfoTooltip = true,
-    this.icon,
-  });
+  const _StatRow({required this.stat, required this.value, this.icon});
 
   final StatSchema stat;
   final num value;
-  final bool showInfoTooltip;
   final IconData? icon;
 
   Color _getStatColor() {
@@ -1644,53 +1637,16 @@ class _StatRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = _getStatColor();
-    final infoIcon = SizedBox(
-      width: SpacingConstants.xl,
-      height: SpacingConstants.xl,
-      child: Center(
-        child: Icon(
-          Icons.info_outline,
-          size: 20,
-          color: color.withValues(alpha: 0.7),
-        ),
-      ),
-    );
-    final infoWidget = showInfoTooltip
-        ? WidgetTooltip(
-            message: Text(
-              stat.description,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: GameThemeConstants.creamSurface,
-              ),
-            ),
-            triggerMode: WidgetTooltipTriggerMode.tap,
-            messageDecoration: BoxDecoration(
-              color: GameThemeConstants.darkNavy,
-              borderRadius: BorderRadius.circular(
-                GameThemeConstants.radiusSmall,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: GameThemeConstants.outlineColor.withValues(alpha: 0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            triangleColor: GameThemeConstants.darkNavy,
-            messagePadding: const EdgeInsets.symmetric(
-              horizontal: SpacingConstants.md,
-              vertical: SpacingConstants.sm,
-            ),
-            child: infoIcon,
-          )
-        : infoIcon;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: SpacingConstants.xs),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 18, color: color),
+            Padding(
+              padding: EdgeInsets.only(top: 2),
+              child: Icon(icon, size: 18, color: color),
+            ),
             const SizedBox(width: SpacingConstants.xs),
           ],
           Expanded(
@@ -1702,8 +1658,6 @@ class _StatRow extends StatelessWidget {
                 : value.toStringAsFixed(2),
             style: TextStyle(fontWeight: FontWeight.w600, color: color),
           ),
-          const SizedBox(width: SpacingConstants.xs),
-          infoWidget,
         ],
       ),
     );
