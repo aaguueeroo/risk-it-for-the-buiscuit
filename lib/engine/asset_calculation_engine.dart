@@ -1,4 +1,4 @@
-import 'dart:math' show Random, cos, log, pi, sqrt;
+import 'dart:math' show Random, cos, log, pi, pow, sqrt;
 
 import 'package:start_hack_2026/engine/calculation_engine.dart';
 
@@ -31,15 +31,22 @@ class AssetCalculationEngine {
     return ((value - basis) / basis) * 100;
   }
 
+  /// Minimum price as fraction of purchase price (prevents total wipeout).
+  static const double _minPriceFraction = 0.01;
+
   /// Creates a new asset with pricePerUnit updated by the given return factor.
   /// Used when applying simulation results; purchasePrice stays unchanged.
+  /// Floors price at 1% of purchase to avoid user losing the asset entirely.
   PortfolioAsset applyReturnFactor(PortfolioAsset asset, double factor) {
+    final rawPrice = asset.pricePerUnit * factor;
+    final floor = asset.purchasePrice * _minPriceFraction;
+    final pricePerUnit = rawPrice.clamp(floor, double.infinity);
     return PortfolioAsset(
       assetId: asset.assetId,
       name: asset.name,
       icon: asset.icon,
       quantity: asset.quantity,
-      pricePerUnit: asset.pricePerUnit * factor,
+      pricePerUnit: pricePerUnit,
       expectedReturn: asset.expectedReturn,
       volatility: asset.volatility,
       purchasePrice: asset.purchasePrice,
@@ -102,15 +109,22 @@ class AssetCalculationEngine {
   // Random return generation (for simulation)
   // ─────────────────────────────────────────────────────────────────────────
 
-  /// Generates a random one-period return factor from expected return and volatility.
-  /// Uses log-normal: mean = expectedReturn/100, stdDev = volatility/100.
+  /// Ticks per year in the simulation (12 months × 4 ticks/month).
+  static const int ticksPerYear = 48;
+
+  /// Generates a random per-tick return factor from annual expected return and volatility.
+  /// expectedReturn and volatility are annual percentages (e.g. 7 = 7% per year).
+  /// Scales to per-tick so that 48 ticks compound to realistic annual outcomes.
   double generateRandomReturn({
     required double expectedReturn,
     required double volatility,
     required Random random,
   }) {
-    final mean = expectedReturn / 100;
-    final stdDev = volatility / 100;
+    // Per-tick mean: (1 + R_annual)^(1/48) - 1 so that product over 48 ticks ≈ 1 + R_annual
+    final annualFactor = 1 + expectedReturn / 100;
+    final mean = (annualFactor > 0 ? pow(annualFactor, 1 / ticksPerYear) : 1.0) - 1;
+    // Per-tick volatility: σ_annual / sqrt(48) (variance scales linearly with time)
+    final stdDev = (volatility / 100) / sqrt(ticksPerYear);
     final normal = mean + stdDev * _boxMuller(random);
     return 1 + normal;
   }
@@ -137,7 +151,10 @@ class AssetCalculationEngine {
   }
 
   /// Total value of holdings for a given return factor map (used in panic sell).
+  /// Floors at minimum recovery (1% of cost basis) so user never gets zero.
   double assetValueWithFactor(PortfolioAsset asset, double factor) {
-    return totalValue(asset) * factor;
+    final rawValue = totalValue(asset) * factor;
+    final floor = costBasis(asset) * _minPriceFraction;
+    return rawValue.clamp(floor, double.infinity);
   }
 }
