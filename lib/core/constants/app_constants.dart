@@ -14,4 +14,5 @@ abstract final class AppConstants {
   static const String assetsPath = 'assets/data/assets.json';
   static const String statsSchemaPath = 'assets/data/stats_schema.json';
   static const String eventsPath = 'assets/data/events.json';
+  static const String lifeEventsPath = 'assets/data/life_events.json';
 }

@@ -407,6 +407,7 @@ class GameEngine {
 
   Stream<SimulationResult> startSimulation(
     List<Map<String, dynamic>> events, {
+    List<Map<String, dynamic>> lifeEvents = const [],
     ValueNotifier<double>? speedMultiplier,
     ValueNotifier<bool>? skipToEnd,
   }) {
@@ -425,6 +426,7 @@ class GameEngine {
       cash: _state!.cash,
       holdings: _state!.holdings,
       eventsConfig: events,
+      lifeEventsConfig: lifeEvents,
       speedMultiplier: speedMultiplier,
       skipToEnd: skipToEnd,
     );

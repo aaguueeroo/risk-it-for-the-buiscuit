@@ -75,10 +75,12 @@ class SimulationController extends ChangeNotifier {
       _skipToEnd.value = false;
       _speedMultiplier.value = 1.0;
       final eventsConfig = await _gameRepository.getEvents();
+      final lifeEventsConfig = await _gameRepository.getLifeEvents();
       await _subscription?.cancel();
       _subscription = _gameEngine
           .startSimulation(
             eventsConfig,
+            lifeEvents: lifeEventsConfig,
             speedMultiplier: _speedMultiplier,
             skipToEnd: _skipToEnd,
           )
@@ -110,6 +112,19 @@ class SimulationController extends ChangeNotifier {
               portfolioValueAtEvent: p.portfolioValueAtEvent,
               panicSellAmount: p.panicSellAmount,
               panicSellLoss: p.panicSellLoss,
+            ));
+          }
+          if (result.lifeEvent != null) {
+            final l = result.lifeEvent!;
+            _events.add(SimulationEvent(
+              timestamp: monthOffset + l.timestamp,
+              type: l.type,
+              title: l.title,
+              description: l.description,
+              portfolioValueAtEvent: l.portfolioValueAtEvent,
+              lifeBillAmount: l.lifeBillAmount,
+              lifeShortfall: l.lifeShortfall,
+              lifeLiquidationSummary: l.lifeLiquidationSummary,
             ));
           }
           notifyListeners();

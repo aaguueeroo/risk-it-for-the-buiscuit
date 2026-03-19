@@ -1362,6 +1362,7 @@ class _AssetSlotsSection extends StatefulWidget {
     required this.assetSectionContentKey,
     required this.getAssetCardKey,
     required this.holdings,
+    required this.maxAssetSlots,
     required this.getAssetAllocationPercent,
     required this.onSell,
     required this.statsSchema,
@@ -1371,6 +1372,7 @@ class _AssetSlotsSection extends StatefulWidget {
   final GlobalKey assetSectionContentKey;
   final GlobalKey Function(String assetId) getAssetCardKey;
   final Map<String, PortfolioAsset> holdings;
+  final int maxAssetSlots;
   final int Function(String assetId) getAssetAllocationPercent;
   final void Function(String assetId) onSell;
   final List<StatSchema> statsSchema;
@@ -1414,11 +1416,46 @@ class _AssetSlotsSectionState extends State<_AssetSlotsSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          'Your Assets',
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Your Assets',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  const SizedBox(height: SpacingConstants.xs),
+                  Text(
+                    'Up to ${widget.maxAssetSlots} different assets · '
+                    '${widget.holdings.length}/${widget.maxAssetSlots} slots used',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: GameThemeConstants.outlineColorLight,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              onPressed: () {},
+              tooltip:
+                  'Of course you could diversify more in real life Mr. Buffet',
+              icon: Icon(
+                Icons.info_outline,
+                color: GameThemeConstants.outlineColorLight,
+                size: 22,
+              ),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(
+                minWidth: 36,
+                minHeight: 36,
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: SpacingConstants.sm),
         KeyedSubtree(

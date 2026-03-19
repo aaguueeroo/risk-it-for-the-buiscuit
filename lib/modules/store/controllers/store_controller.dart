@@ -51,6 +51,9 @@ class StoreController extends ChangeNotifier {
       _gameEngine.portfolioHistory;
   double get currentPortfolioValue => _gameEngine.currentPortfolioValue;
 
+  /// Max number of different assets this character can hold (from stats).
+  int get maxAssetSlots => _gameEngine.assetSlots;
+
   Future<void> loadStoreData() async {
     _isLoading = true;
     _errorMessage = null;

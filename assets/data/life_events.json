@@ -1,0 +1,112 @@
+{
+  "events": [
+    {
+      "id": "new_car_fund",
+      "title": "New car savings",
+      "probability": 8,
+      "sellIfNeeded": true,
+      "costPortfolioPercent": 0.04,
+      "costMin": 400,
+      "costMax": 7500,
+      "description": "You decide to build a dedicated pot for a new car.",
+      "descriptions": [
+        "You commit to setting aside a chunk of savings for a new car payment.",
+        "A reliable ride becomes a priority—you redirect cash flow toward a vehicle fund.",
+        "Your old car is on borrowed time; you start funding a replacement.",
+        "Dealer brochures appear on the kitchen table. Time to save for wheels."
+      ]
+    },
+    {
+      "id": "uninsured_injury",
+      "title": "Uninsured medical bill",
+      "probability": 5,
+      "sellIfNeeded": true,
+      "costMin": 1800,
+      "costMax": 12000,
+      "description": "An injury or procedure lands a bill your plan does not fully cover.",
+      "descriptions": [
+        "An ER visit and follow-ups arrive with a shockingly large invoice.",
+        "Physical therapy and imaging stack up—and insurance leaves a big gap.",
+        "A sports injury needs surgery; the deductible and out-of-network share hurt.",
+        "You’re fine now, but the hospital billing department wants payment yesterday."
+      ]
+    },
+    {
+      "id": "family_emergency",
+      "title": "Family needs help",
+      "probability": 6,
+      "sellIfNeeded": true,
+      "costMin": 800,
+      "costMax": 5500,
+      "description": "Someone close needs financial support right away.",
+      "descriptions": [
+        "A parent falls behind on rent—you step in to bridge the month.",
+        "Your sibling’s car died; they need a loan you feel you can’t refuse.",
+        "A family health scare means travel and hotels on short notice.",
+        "The group chat turns serious: relatives need cash for legal fees."
+      ]
+    },
+    {
+      "id": "home_repair",
+      "title": "Urgent home repair",
+      "probability": 7,
+      "sellIfNeeded": true,
+      "costPortfolioPercent": 0.035,
+      "costMin": 600,
+      "costMax": 9000,
+      "description": "The house demands money before small problems become disasters.",
+      "descriptions": [
+        "The roof leaks after a storm; contractors quote a painful number.",
+        "The heating system dies in winter. Replacement can’t wait.",
+        "Mold remediation and drywall turn a corner of your budget inside out.",
+        "Insurance covers part, but the deductible and upgrades still sting."
+      ]
+    },
+    {
+      "id": "tax_surprise",
+      "title": "Tax bill surprise",
+      "probability": 5,
+      "sellIfNeeded": true,
+      "costMin": 500,
+      "costMax": 6500,
+      "description": "You owe more to the tax authority than you expected.",
+      "descriptions": [
+        "Your accountant delivers bad news: you underpaid through the year.",
+        "Side income and missing withholdings show up on the final return.",
+        "A prior-year adjustment arrives—you owe back taxes plus interest.",
+        "Estimated payments fell short; April (or the deadline) hits hard."
+      ]
+    },
+    {
+      "id": "wedding_or_travel",
+      "title": "Big life celebration",
+      "probability": 6,
+      "sellIfNeeded": true,
+      "costPortfolioPercent": 0.03,
+      "costMin": 1200,
+      "costMax": 8000,
+      "description": "A wedding, milestone trip, or major celebration needs funding.",
+      "descriptions": [
+        "You’re in the wedding party—and flights, gifts, and attire add up fast.",
+        "A dream trip finally gets dates; deposits are due now.",
+        "A milestone anniversary deserves more than a card and dinner.",
+        "Celebration plans balloon; you want to participate without maxing cards."
+      ]
+    },
+    {
+      "id": "tuition_gap",
+      "title": "Education expense",
+      "probability": 5,
+      "sellIfNeeded": false,
+      "costMin": 1500,
+      "costMax": 4500,
+      "description": "Course fees or certification hit before aid arrives.",
+      "descriptions": [
+        "A certification program requires tuition this semester—no loans lined up.",
+        "Your kid’s program has a fee spike; payment is due in weeks.",
+        "You enroll in a bootcamp; the invoice is real and immediate.",
+        "Books, software, and lab fees stack on top of tuition."
+      ]
+    }
+  ]
+}

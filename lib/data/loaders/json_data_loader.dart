@@ -75,4 +75,18 @@ class JsonDataLoader {
       return [];
     }
   }
+
+  Future<List<Map<String, dynamic>>> loadLifeEvents() async {
+    try {
+      final json = await rootBundle.loadString(AppConstants.lifeEventsPath);
+      final data = jsonDecode(json) as Map<String, dynamic>;
+      final list = data['events'] as List<dynamic>;
+      return list.map((e) => e as Map<String, dynamic>).toList();
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('JsonDataLoader: Failed to load life events: $e');
+      }
+      return [];
+    }
+  }
 }
