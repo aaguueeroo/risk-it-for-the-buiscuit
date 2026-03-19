@@ -49,6 +49,7 @@ class GameWonScreen extends StatelessWidget {
               final growthPercent = startValue > 0
                   ? ((finalValue - startValue) / startValue * 100)
                   : 0.0;
+              final roundsPlayed = (portfolioHistory.length - 1).clamp(0, 999);
               final scoreEngine = ScoreEngine();
               final scoreResult = scoreEngine.calculateScore(
                 personaId: character.id,
@@ -61,7 +62,7 @@ class GameWonScreen extends StatelessWidget {
                 personaId: character.id,
                 personaLabel: character.name,
                 score: scoreResult,
-                roundsPlayed: (portfolioHistory.length - 1).clamp(1, 999),
+                roundsPlayed: roundsPlayed,
               );
               final score = scoreResult.totalScore;
               return SingleChildScrollView(
@@ -77,7 +78,7 @@ class GameWonScreen extends StatelessWidget {
                     _PortfolioEvolutionSection(
                       portfolioHistory: portfolioHistory,
                       finalValue: finalValue,
-                      yearsPlayed: portfolioHistory.length,
+                      yearsPlayed: roundsPlayed,
                       growthPercent: growthPercent,
                     ),
                     const SizedBox(height: 16),

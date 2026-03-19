@@ -12,7 +12,8 @@ class WinConditionChecker {
     if (conditions == null || portfolioHistory.isEmpty) return false;
     final lastPoint = portfolioHistory.last;
     final finalValue = lastPoint.value;
-    final yearsPlayed = portfolioHistory.length;
+    // Year 1 is the starting baseline before any simulation round is played.
+    final yearsPlayed = (portfolioHistory.length - 1).clamp(0, 999);
     if (finalValue < conditions.minPortfolioValue) return false;
     if (yearsPlayed < conditions.minYears) return false;
     if (conditions.requireSteadyGrowth) {
