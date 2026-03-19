@@ -19,6 +19,7 @@ class SimulationController extends ChangeNotifier {
 
   List<SimulationDataPoint> _dataPoints = [];
   List<SimulationEvent> _events = [];
+  List<ActiveEvent> _activeEvents = [];
   SimulationStatus _status = SimulationStatus.idle;
   String? _errorMessage;
   double _lastPortfolioValue = 0;
@@ -30,10 +31,14 @@ class SimulationController extends ChangeNotifier {
   double get lastPortfolioValue => _lastPortfolioValue;
   int get currentYear => _gameEngine.state?.currentYear ?? 1;
 
+  /// Returns the currently active market events and their impact.
+  List<ActiveEvent> getActiveEvents() => List.unmodifiable(_activeEvents);
+
   Future<void> startSimulation() async {
     _status = SimulationStatus.running;
     _dataPoints = [];
     _events = [];
+    _activeEvents = [];
     _errorMessage = null;
     notifyListeners();
     try {
@@ -46,6 +51,7 @@ class SimulationController extends ChangeNotifier {
             value: result.portfolioValue,
           ));
           _lastPortfolioValue = result.portfolioValue;
+          _activeEvents = result.getActiveEvents();
           if (result.event != null) {
             _events.add(result.event!);
           }
@@ -78,6 +84,7 @@ class SimulationController extends ChangeNotifier {
   void reset() {
     _dataPoints = [];
     _events = [];
+    _activeEvents = [];
     _status = SimulationStatus.idle;
     _errorMessage = null;
     _lastPortfolioValue = 0;
