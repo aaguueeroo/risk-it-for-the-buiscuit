@@ -13,6 +13,8 @@ abstract class GameRepository {
 
   Future<List<Map<String, dynamic>>> getEvents();
 
+  Future<List<Map<String, dynamic>>> getLifeEvents();
+
   Future<List<StoreItem>> getStoreOffer({int itemCount = 4});
 
   Future<StoreItem> getRandomStoreItem();

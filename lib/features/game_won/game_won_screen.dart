@@ -7,6 +7,7 @@ import 'package:start_hack_2026/core/widgets/game_button.dart';
 import 'package:start_hack_2026/core/widgets/game_card.dart';
 import 'package:start_hack_2026/core/widgets/portfolio_evolution_chart.dart';
 import 'package:start_hack_2026/engine/game_engine.dart';
+import 'package:start_hack_2026/engine/score_engine.dart';
 import 'package:start_hack_2026/modules/leaderboard/controllers/leaderboard_controller.dart';
 
 class GameWonScreen extends StatelessWidget {
@@ -48,8 +49,21 @@ class GameWonScreen extends StatelessWidget {
               final growthPercent = startValue > 0
                   ? ((finalValue - startValue) / startValue * 100)
                   : 0.0;
-              final rawScore = finalValue.isFinite ? finalValue.round() : 0;
-              final score = rawScore < 0 ? 0 : rawScore;
+              final scoreEngine = ScoreEngine();
+              final scoreResult = scoreEngine.calculateScore(
+                personaId: character.id,
+                portfolioHistory: portfolioHistory,
+                cumulativeDataPoints: state.cumulativeSimulationDataPoints,
+                cumulativeEvents: state.cumulativeSimulationEvents,
+                finalHoldings: state.holdings,
+              );
+              final feedback = scoreEngine.buildFinalFeedback(
+                personaId: character.id,
+                personaLabel: character.name,
+                score: scoreResult,
+                roundsPlayed: (portfolioHistory.length - 1).clamp(1, 999),
+              );
+              final score = scoreResult.totalScore;
               return SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -66,6 +80,8 @@ class GameWonScreen extends StatelessWidget {
                       yearsPlayed: portfolioHistory.length,
                       growthPercent: growthPercent,
                     ),
+                    const SizedBox(height: 16),
+                    _FinalFeedbackSection(feedback: feedback),
                     const SizedBox(height: 16),
                     _SaveScoreSection(
                       score: score,
@@ -232,6 +248,125 @@ class _FinalStatsRow extends StatelessWidget {
   }
 }
 
+class _FinalFeedbackSection extends StatelessWidget {
+  const _FinalFeedbackSection({required this.feedback});
+
+  final FinalScoreFeedback feedback;
+
+  @override
+  Widget build(BuildContext context) {
+    final dimensions = [
+      ('wealth', 'Wealth'),
+      ('drawdown', 'Drawdown'),
+      ('behavior', 'Behavior'),
+      ('diversification', 'Diversification'),
+      ('real_return', 'Real Return'),
+      ('fidelity', 'Fidelity'),
+    ];
+    return GameCard(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Final Feedback',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              feedback.summary,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: GameThemeConstants.outlineColor,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Grade ${feedback.grade} - ${feedback.total}/105',
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                color: GameThemeConstants.primaryDark,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 12),
+            ...dimensions.map((item) {
+              final key = item.$1;
+              final label = item.$2;
+              final dimension = feedback.dimensions[key];
+              if (dimension == null) return const SizedBox.shrink();
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _FeedbackTile(
+                  label: label,
+                  score: dimension.score,
+                  max: dimension.max,
+                  explanation: dimension.explanation,
+                  tip: dimension.tip,
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FeedbackTile extends StatelessWidget {
+  const _FeedbackTile({
+    required this.label,
+    required this.score,
+    required this.max,
+    required this.explanation,
+    required this.tip,
+  });
+
+  final String label;
+  final int score;
+  final int max;
+  final String explanation;
+  final String tip;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: GameThemeConstants.creamSurface,
+        borderRadius: BorderRadius.circular(SpacingConstants.gameRadiusSm),
+        border: Border.all(
+          color: GameThemeConstants.outlineColor,
+          width: GameThemeConstants.outlineThicknessSmall,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$label: $score/$max',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              color: GameThemeConstants.primaryDark,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(explanation, style: Theme.of(context).textTheme.bodySmall),
+          const SizedBox(height: 6),
+          Text(
+            'Tip: $tip',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: GameThemeConstants.accentDark,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _SaveScoreSection extends StatefulWidget {
   const _SaveScoreSection({required this.score, required this.characterType});
 
@@ -342,6 +477,14 @@ class _SaveScoreSectionState extends State<_SaveScoreSection> {
               style: Theme.of(
                 context,
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Score: ${widget.score}/100',
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                color: GameThemeConstants.primaryDark,
+                fontWeight: FontWeight.w700,
+              ),
             ),
             const SizedBox(height: 12),
             TextField(

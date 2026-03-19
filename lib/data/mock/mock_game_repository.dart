@@ -17,6 +17,7 @@ class MockGameRepository implements GameRepository {
   List<StoreItem>? _itemsCache;
   List<StoreItem>? _assetsCache;
   List<Map<String, dynamic>>? _eventsCache;
+  List<Map<String, dynamic>>? _lifeEventsCache;
 
   @override
   Future<List<Character>> getCharacters() async {
@@ -46,6 +47,12 @@ class MockGameRepository implements GameRepository {
   Future<List<Map<String, dynamic>>> getEvents() async {
     _eventsCache ??= await _loader.loadEvents();
     return _eventsCache!;
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getLifeEvents() async {
+    _lifeEventsCache ??= await _loader.loadLifeEvents();
+    return _lifeEventsCache!;
   }
 
   @override

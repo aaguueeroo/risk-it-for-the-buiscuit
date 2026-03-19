@@ -316,6 +316,8 @@ class _YearEventTile extends StatelessWidget {
         return Icons.public;
       case SimulationEventType.panicSell:
         return Icons.sell;
+      case SimulationEventType.life:
+        return Icons.family_restroom;
     }
   }
 
@@ -329,6 +331,8 @@ class _YearEventTile extends StatelessWidget {
         return GameThemeConstants.warningDark;
       case SimulationEventType.panicSell:
         return GameThemeConstants.statNegative;
+      case SimulationEventType.life:
+        return GameThemeConstants.dangerDark;
     }
   }
 }
@@ -1047,6 +1051,8 @@ class _SimulationChartState extends State<_SimulationChart>
         return GameThemeConstants.warningDark;
       case SimulationEventType.panicSell:
         return GameThemeConstants.statNegative;
+      case SimulationEventType.life:
+        return GameThemeConstants.dangerDark;
     }
   }
 }

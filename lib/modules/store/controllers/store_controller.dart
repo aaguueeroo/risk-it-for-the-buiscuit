@@ -51,6 +51,9 @@ class StoreController extends ChangeNotifier {
       _gameEngine.portfolioHistory;
   double get currentPortfolioValue => _gameEngine.currentPortfolioValue;
 
+  /// Max number of different assets this character can hold (from stats).
+  int get maxAssetSlots => _gameEngine.assetSlots;
+
   Future<void> loadStoreData() async {
     _isLoading = true;
     _errorMessage = null;
@@ -201,6 +204,8 @@ class StoreController extends ChangeNotifier {
         if (!_slotMatchesItem(offerIndex, a)) return false;
         if (!_applyAssetPurchase(a)) return false;
         _removeOfferAt(offerIndex);
+        // Card leaves the shelf (no replacement). The same asset can stack
+        // when it shows up again after reshuffle or a new round’s store refresh.
         HapticFeedback.lightImpact();
         notifyListeners();
         return true;

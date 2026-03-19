@@ -48,6 +48,7 @@ lib/
 - `items.json` – Knowledge items (statEffects, level, price)
 - `assets.json` – Financial assets (expectedReturn, volatility, liquidity, managementCost)
 - `events.json` – Market events: `marketImpact`, `riskyAssetImpact`, `safeAssetImpact`, `probability` (relative weight), optional `durationMonthsRange` `[min,max]`, optional `descriptions` (random headline per trigger; falls back to `description`)
+- `life_events.json` – Life events (bills, goals): `probability` (weight), `sellIfNeeded`, `costFixed` or `costMin`/`costMax` and/or `costPortfolioPercent` (clamped to min/max), `title`, `description`, optional `descriptions[]`. During simulation they deduct cash and may liquidate holdings (highest liquidity first) until the bill is paid or assets run out. **At most 2 per simulated year**; trigger odds are low so **0–1 per year is typical**, with a second event much rarer.
 - `stats_schema.json` – Stat metadata (displayName, min, max, category)
 
 ### Engines

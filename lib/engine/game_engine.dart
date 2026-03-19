@@ -127,7 +127,8 @@ class GameEngine {
     if (_state == null) return false;
     if (item.price > _state!.cash) return false;
     if (item is StoreItemAsset) {
-      if (holdingsCount >= assetSlots) return false;
+      final addingToExisting = _state!.holdings.containsKey(item.id);
+      if (!addingToExisting && holdingsCount >= assetSlots) return false;
     }
     if (item is StoreItemItem) {
       final freeSlots = _state!.itemSlots.where((s) => s == null).length;
@@ -407,6 +408,7 @@ class GameEngine {
 
   Stream<SimulationResult> startSimulation(
     List<Map<String, dynamic>> events, {
+    List<Map<String, dynamic>> lifeEvents = const [],
     ValueNotifier<double>? speedMultiplier,
     ValueNotifier<bool>? skipToEnd,
   }) {
@@ -425,6 +427,7 @@ class GameEngine {
       cash: _state!.cash,
       holdings: _state!.holdings,
       eventsConfig: events,
+      lifeEventsConfig: lifeEvents,
       speedMultiplier: speedMultiplier,
       skipToEnd: skipToEnd,
     );
