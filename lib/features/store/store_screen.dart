@@ -136,6 +136,11 @@ class _StoreScreenState extends State<StoreScreen> {
                   ),
                 ),
               ),
+              IconButton(
+                icon: const Icon(Icons.bug_report),
+                onPressed: () => context.push('/simulation-debug'),
+                tooltip: 'Debug',
+              ),
             ],
           ),
           body: Container(

@@ -5,6 +5,7 @@ import 'package:start_hack_2026/data/repositories/game_repository.dart';
 import 'package:start_hack_2026/domain/entities/simulation_event.dart';
 import 'package:start_hack_2026/engine/game_engine.dart';
 import 'package:start_hack_2026/engine/simulation_engine.dart';
+import 'package:start_hack_2026/engine/win_condition_checker.dart';
 
 class SimulationController extends ChangeNotifier {
   SimulationController({
@@ -23,8 +24,10 @@ class SimulationController extends ChangeNotifier {
   SimulationStatus _status = SimulationStatus.idle;
   String? _errorMessage;
   double _lastPortfolioValue = 0;
+  bool _hasWon = false;
 
   List<SimulationDataPoint> get dataPoints => _dataPoints;
+  bool get hasWon => _hasWon;
   List<SimulationEvent> get events => _events;
   SimulationStatus get status => _status;
   String? get errorMessage => _errorMessage;
@@ -68,6 +71,12 @@ class SimulationController extends ChangeNotifier {
         onDone: () {
           _status = SimulationStatus.complete;
           _gameEngine.completeSimulation(_lastPortfolioValue);
+          final state = _gameEngine.state;
+          _hasWon = state != null &&
+              WinConditionChecker.checkWin(
+                character: state.character,
+                portfolioHistory: state.portfolioHistory,
+              );
           notifyListeners();
         },
       );
@@ -88,6 +97,7 @@ class SimulationController extends ChangeNotifier {
     _status = SimulationStatus.idle;
     _errorMessage = null;
     _lastPortfolioValue = 0;
+    _hasWon = false;
     notifyListeners();
   }
 

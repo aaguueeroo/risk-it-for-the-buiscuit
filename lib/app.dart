@@ -10,6 +10,8 @@ import 'package:start_hack_2026/features/achievements/achievements_screen.dart';
 import 'package:start_hack_2026/features/character_selection/character_selection_screen.dart';
 import 'package:start_hack_2026/features/home/home_screen.dart';
 import 'package:start_hack_2026/features/leaderboard/leaderboard_screen.dart';
+import 'package:start_hack_2026/features/game_won/game_won_screen.dart';
+import 'package:start_hack_2026/features/simulation/simulation_debug_screen.dart';
 import 'package:start_hack_2026/features/simulation/simulation_screen.dart';
 import 'package:start_hack_2026/features/store/store_screen.dart';
 import 'package:start_hack_2026/modules/game/controllers/game_controller.dart';
@@ -71,6 +73,14 @@ final GoRouter _router = GoRouter(
     GoRoute(
       path: '/simulation',
       builder: (context, state) => const SimulationScreen(),
+    ),
+    GoRoute(
+      path: '/simulation-debug',
+      builder: (context, state) => const SimulationDebugScreen(),
+    ),
+    GoRoute(
+      path: '/game-won',
+      builder: (context, state) => const GameWonScreen(),
     ),
     GoRoute(
       path: '/achievements',

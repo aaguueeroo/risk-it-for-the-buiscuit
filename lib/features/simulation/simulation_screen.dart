@@ -37,6 +37,13 @@ class _SimulationScreenState extends State<SimulationScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.bug_report),
+            onPressed: () => context.push('/simulation-debug'),
+            tooltip: 'Debug',
+          ),
+        ],
       ),
       body: Container(
         decoration: const BoxDecoration(
@@ -117,9 +124,15 @@ class _SimulationScreenState extends State<SimulationScreen> {
                 const SizedBox(height: SpacingConstants.xl),
                 if (controller.status == SimulationStatus.complete)
                   GameButton(
-                    label: 'Prepare for Next Year',
-                    icon: Icons.store,
-                    onPressed: () => context.pop(),
+                    label: controller.hasWon ? 'View Victory' : 'Prepare for Next Year',
+                    icon: controller.hasWon ? Icons.emoji_events : Icons.store,
+                    onPressed: () {
+                      if (controller.hasWon) {
+                        context.pushReplacement('/game-won');
+                      } else {
+                        context.pop();
+                      }
+                    },
                     variant: GameButtonVariant.success,
                   ),
               ],
