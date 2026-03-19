@@ -20,6 +20,7 @@ class SimulationEvent {
     required this.title,
     required this.description,
     required this.portfolioValueAtEvent,
+    this.panicSellAssetName,
     this.panicSellAmount,
     this.panicSellLoss,
     this.lifeBillAmount,
@@ -32,6 +33,9 @@ class SimulationEvent {
   final String title;
   final String description;
   final double portfolioValueAtEvent;
+
+  /// Panic sell: asset name that was sold.
+  final String? panicSellAssetName;
 
   /// Amount received from panic sell (only for type == panicSell).
   final int? panicSellAmount;

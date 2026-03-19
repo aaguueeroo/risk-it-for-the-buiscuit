@@ -290,6 +290,19 @@ class _YearEventTile extends StatelessWidget {
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
+                  if (event.type == SimulationEventType.panicSell &&
+                      event.panicSellAmount != null) ...[
+                    const SizedBox(height: SpacingConstants.xs),
+                    Text(
+                      event.panicSellAssetName != null
+                          ? 'Sold ${event.panicSellAssetName} for \$${event.panicSellAmount}'
+                          : 'Sold for \$${event.panicSellAmount}',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: GameThemeConstants.statNegative,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: SpacingConstants.xs),
                   Text(
                     'Month $monthInYear · Portfolio: \$${event.portfolioValueAtEvent.toStringAsFixed(0)}',
@@ -1248,7 +1261,8 @@ class _EventPopupContent extends StatelessWidget {
               event.panicSellLoss != null) ...[
             const SizedBox(height: SpacingConstants.xs),
             Text(
-              'Sold: \$${event.panicSellAmount}\n'
+              '${event.panicSellAssetName != null ? 'Asset: ${event.panicSellAssetName}\n' : ''}'
+              'Sold for: \$${event.panicSellAmount}\n'
               'Loss: \$${event.panicSellLoss!.toStringAsFixed(0)}',
               style: Theme.of(context).textTheme.bodySmall,
             ),

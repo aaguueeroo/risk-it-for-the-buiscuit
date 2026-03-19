@@ -110,6 +110,7 @@ class SimulationController extends ChangeNotifier {
               title: p.title,
               description: p.description,
               portfolioValueAtEvent: p.portfolioValueAtEvent,
+              panicSellAssetName: p.panicSellAssetName,
               panicSellAmount: p.panicSellAmount,
               panicSellLoss: p.panicSellLoss,
             ));

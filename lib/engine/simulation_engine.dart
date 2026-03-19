@@ -251,6 +251,7 @@ class SimulationEngine {
             title: 'Panic Sell',
             description: 'Sold ${asset.name} during market stress',
             portfolioValueAtEvent: 0, // Set after portfolioValue computed
+            panicSellAssetName: asset.name,
             panicSellAmount: saleValue.toInt(),
             panicSellLoss: loss,
           );
@@ -270,6 +271,7 @@ class SimulationEngine {
           title: panicSellEvent.title,
           description: panicSellEvent.description,
           portfolioValueAtEvent: portfolioValue,
+          panicSellAssetName: panicSellEvent.panicSellAssetName,
           panicSellAmount: panicSellEvent.panicSellAmount,
           panicSellLoss: panicSellEvent.panicSellLoss,
         );
