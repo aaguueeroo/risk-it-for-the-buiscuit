@@ -10,7 +10,6 @@ import 'package:start_hack_2026/core/extensions/icon_extension.dart';
 import 'package:start_hack_2026/core/widgets/cartoon_play_icon.dart';
 import 'package:start_hack_2026/core/widgets/game_button.dart';
 import 'package:start_hack_2026/core/widgets/game_card.dart';
-import 'package:start_hack_2026/core/widgets/game_key_factors_bar.dart';
 import 'package:start_hack_2026/core/widgets/portfolio_evolution_chart.dart';
 import 'package:start_hack_2026/core/widgets/game_progress_indicator.dart';
 import 'package:start_hack_2026/domain/entities/owned_item.dart';
@@ -155,8 +154,8 @@ class _StoreScreenState extends State<StoreScreen> {
         controller.purchase(item, offerIndex: offerIndex);
         return;
       }
-      final Rect sourceRect = sourceBox.localToGlobal(Offset.zero) &
-          sourceBox.size;
+      final Rect sourceRect =
+          sourceBox.localToGlobal(Offset.zero) & sourceBox.size;
       if (!mounted) return;
       final BuildContext? stackCtx = _purchaseFlyStackKey.currentContext;
       final RenderObject? stackRo = stackCtx?.findRenderObject();
@@ -327,15 +326,13 @@ class _StoreScreenState extends State<StoreScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
-                                  GameKeyFactorsBar(stats: controller.stats),
-                                  const SizedBox(height: SpacingConstants.md),
                                   _TotalCapitalContainer(
                                     totalCapital:
                                         controller.currentPortfolioValue,
                                     baselineValue:
                                         _getBaselineValueForComparison(
-                                      controller,
-                                    ),
+                                          controller,
+                                        ),
                                   ),
                                   const SizedBox(height: SpacingConstants.lg),
                                   _BuySection(
@@ -819,7 +816,8 @@ class _BuySection extends StatelessWidget {
     StoreItem item,
     GlobalKey sourceKey,
     int offerIndex,
-  ) onPurchase;
+  )
+  onPurchase;
   final GlobalKey Function(StoreItem item) keyForStoreCard;
   final Future<void> Function() onReshuffle;
   final int reshuffleCost;
@@ -1016,7 +1014,8 @@ class _StoreGrid extends StatelessWidget {
     StoreItem item,
     GlobalKey sourceKey,
     int offerIndex,
-  ) onPurchase;
+  )
+  onPurchase;
   final GlobalKey Function(StoreItem item) keyForStoreCard;
   final List<StatSchema> statsSchema;
 
@@ -1030,9 +1029,9 @@ class _StoreGrid extends StatelessWidget {
             'Shelf cleared! Tap shuffle for a fresh set of cards.',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: GameThemeConstants.outlineColorLight,
-                  fontWeight: FontWeight.w500,
-                ),
+              color: GameThemeConstants.outlineColorLight,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
       );
@@ -1042,9 +1041,9 @@ class _StoreGrid extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 1.38,
-        crossAxisSpacing: SpacingConstants.sm,
-        mainAxisSpacing: SpacingConstants.sm,
+        childAspectRatio: 0.8,
+        crossAxisSpacing: SpacingConstants.md,
+        mainAxisSpacing: SpacingConstants.md,
       ),
       itemCount: items.length,
       itemBuilder: (context, index) {
@@ -1117,12 +1116,6 @@ class _ItemSlotsSection extends StatelessWidget {
         ),
         Text(
           '${itemSlots.where((s) => s != null).length}/${itemSlots.length} slots · '
-          'Buy duplicates to fill empty slots or merge into a higher level',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: GameThemeConstants.outlineColorLight,
-          ),
-        ),
-        Text(
           'Drag an item onto a similar item of the same level to combine',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
             color: GameThemeConstants.outlineColorLight,
@@ -1327,8 +1320,8 @@ class _ItemSlotCard extends StatelessWidget {
                     Text(
                       'Empty',
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: GameThemeConstants.outlineColorLight,
-                          ),
+                        color: GameThemeConstants.outlineColorLight,
+                      ),
                     ),
                   ],
                 ),
@@ -1969,7 +1962,9 @@ class _AnimatedInvestButtonState extends State<_AnimatedInvestButton>
             variant: GameButtonVariant.success,
             isFullWidth: !widget.compact,
             padding: EdgeInsets.symmetric(
-              horizontal: widget.compact ? SpacingConstants.xs : SpacingConstants.sm,
+              horizontal: widget.compact
+                  ? SpacingConstants.xs
+                  : SpacingConstants.sm,
               vertical: widget.compact ? 3 : 4,
             ),
             trailing: widget.compact
@@ -2038,7 +2033,7 @@ class _StoreItemCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GameCard(
       backgroundColor: _getCardBackgroundColor(),
-      padding: const EdgeInsets.all(SpacingConstants.xs),
+      padding: const EdgeInsets.all(SpacingConstants.sm),
       child: _buildCardLayout(context),
     );
   }
@@ -2046,78 +2041,55 @@ class _StoreItemCard extends StatelessWidget {
   Widget _buildCardLayout(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      mainAxisAlignment: MainAxisAlignment.start,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              width: 32,
-              height: 32,
-              child: Center(
+        AspectRatio(
+          aspectRatio: 1.8,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Center(
                 child: item.icon == 'attach_money'
-                    ? Image.asset(_coinAssetPath, width: 20, height: 20)
+                    ? Image.asset(_coinAssetPath, width: 40, height: 40)
                     : Icon(
                         item.icon.toIconData(),
-                        size: 20,
+                        size: 80,
                         color: GameThemeConstants.primaryDark,
                       ),
               ),
-            ),
-            const SizedBox(width: SpacingConstants.xs),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (item is StoreItemItem)
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 4,
-                          vertical: 1,
-                        ),
-                        decoration: BoxDecoration(
-                          color: GameThemeConstants.primaryDark,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          'L${(item as StoreItemItem).level}',
-                          style: Theme.of(context)
-                              .textTheme
-                              .labelSmall
-                              ?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 11,
-                              ),
-                        ),
-                      ),
-                    )
-                  else
-                    const SizedBox(height: 18),
-                  Text(
-                    switch (item) {
-                      StoreItemItem(:final name, :final level) =>
-                        _formatLearningItemDisplayName(name, level),
-                      _ => item.name,
-                    },
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+            ],
+          ),
+        ),
+        Expanded(
+          flex: 1,
+          child: SingleChildScrollView(
+            padding: EdgeInsets.zero,
+            physics: const ClampingScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  switch (item) {
+                    StoreItemItem(:final name, :final level) =>
+                      _formatLearningItemDisplayName(name, level),
+                    _ => item.name,
+                  },
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
                   ),
-                  const SizedBox(height: 2),
-                  _buildStatsContent(context),
-                ],
-              ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: SpacingConstants.xs),
+                _buildStatsContent(context),
+              ],
             ),
-          ],
+          ),
         ),
         _buildButton(context),
+        const SizedBox(height: SpacingConstants.sm),
       ],
     );
   }
@@ -2125,27 +2097,27 @@ class _StoreItemCard extends StatelessWidget {
   Widget _buildStatsContent(BuildContext context) {
     return switch (item) {
       StoreItemItem(:final statEffects) => Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: statEffects.entries
-                .where((e) => e.key != 'money')
-                .map(
-                  (e) => Text(
-                    '${_getStatDisplayName(e.key)}: ${e.value > 0 ? '+' : ''}${e.value.toStringAsFixed(e.value == e.value.roundToDouble() ? 0 : 1)}',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          fontSize: 12,
-                          color: e.value > 0
-                              ? GameThemeConstants.statPositive
-                              : e.value < 0
-                                  ? GameThemeConstants.statNegative
-                                  : null,
-                        ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                )
-                .toList(),
-          ),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: statEffects.entries
+            .where((e) => e.key != 'money')
+            .map(
+              (e) => Text(
+                '${_getStatDisplayName(e.key)}: ${e.value > 0 ? '+' : ''}${e.value.toStringAsFixed(e.value == e.value.roundToDouble() ? 0 : 1)}',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  fontSize: 11,
+                  color: e.value > 0
+                      ? GameThemeConstants.statPositive
+                      : e.value < 0
+                      ? GameThemeConstants.statNegative
+                      : null,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            )
+            .toList(),
+      ),
       StoreItemAsset(
         :final expectedReturn,
         :final volatility,
@@ -2156,22 +2128,39 @@ class _StoreItemCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Ret: ${expectedReturn.toStringAsFixed(1)}%  Vol: ${volatility.toStringAsFixed(1)}%',
+              '${_getStatDisplayName('return')}: ${expectedReturn >= 0 ? '+' : ''}${expectedReturn.toStringAsFixed(1)}%',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontSize: 12,
-                    color: GameThemeConstants.outlineColorLight,
-                  ),
-              maxLines: 1,
+                fontSize: 11,
+                color: expectedReturn > 0
+                    ? GameThemeConstants.statPositive
+                    : expectedReturn < 0
+                    ? GameThemeConstants.statNegative
+                    : null,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            Text(
+              '${_getStatDisplayName('volatility')}: ${volatility.toStringAsFixed(1)}%',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                fontSize: 11,
+                color: volatility > 0
+                    ? GameThemeConstants.statPositive
+                    : volatility < 0
+                    ? GameThemeConstants.statNegative
+                    : null,
+              ),
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
             if (managementCost > 0)
               Text(
-                'Mgmt: ${managementCost.toStringAsFixed(2)}%',
+                '${_getStatDisplayName('managementCostDrag')}: -${managementCost.toStringAsFixed(2)}%',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      fontSize: 12,
-                      color: GameThemeConstants.outlineColorLight,
-                    ),
-                maxLines: 1,
+                  fontSize: 11,
+                  color: GameThemeConstants.statNegative,
+                ),
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
           ],
@@ -2194,16 +2183,12 @@ class _StoreItemCard extends StatelessWidget {
       isFullWidth: true,
       padding: const EdgeInsets.symmetric(
         horizontal: SpacingConstants.sm,
-        vertical: 4,
+        vertical: SpacingConstants.xs,
       ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.monetization_on,
-            size: 16,
-            color: GameThemeConstants.warningLight,
-          ),
+          Image.asset(_coinAssetPath, width: 20, height: 20),
           const SizedBox(width: SpacingConstants.xs),
           Text(
             '${item.price}',
