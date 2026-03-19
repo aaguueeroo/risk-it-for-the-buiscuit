@@ -165,10 +165,12 @@ class _SimulationScreenState extends State<SimulationScreen> {
                       Padding(
                         padding: const EdgeInsets.all(SpacingConstants.md),
                         child: GameButton(
-                          label: controller.hasWon
-                              ? 'View Victory'
+                          label: (controller.hasWon ||
+                                  controller.hasReachedRoundLimit)
+                              ? 'View Results'
                               : 'Continue',
-                          icon: controller.hasWon
+                          icon: (controller.hasWon ||
+                                  controller.hasReachedRoundLimit)
                               ? Icons.emoji_events
                               : Icons.store,
                           onPressed: () async {
@@ -176,7 +178,8 @@ class _SimulationScreenState extends State<SimulationScreen> {
                                 .read<StoreController>()
                                 .refreshFromGameState();
                             if (!context.mounted) return;
-                            if (controller.hasWon) {
+                            if (controller.hasWon ||
+                                controller.hasReachedRoundLimit) {
                               context.pushReplacement('/game-won');
                             } else {
                               context.pop();
@@ -898,21 +901,19 @@ class _SimulationChartState extends State<_SimulationChart>
                 handleBuiltInTouches: true,
                 touchTooltipData: LineTouchTooltipData(
                   getTooltipItems: (touchedSpots) {
-                    if (touchedSpots.isEmpty) return [];
-                    final spot = touchedSpots.first;
-                    if (eventSpotIndices.contains(spot.spotIndex)) {
-                      return [];
-                    }
-                    return [
-                      LineTooltipItem(
+                    return touchedSpots.map((LineBarSpot spot) {
+                      if (eventSpotIndices.contains(spot.spotIndex)) {
+                        return null;
+                      }
+                      return LineTooltipItem(
                         'Month ${(spot.x.toInt() + 1).clamp(1, 12)}\n'
                         '\$${spot.y.toStringAsFixed(0)}',
                         const TextStyle(
                           color: GameThemeConstants.creamSurface,
                           fontSize: 12,
                         ),
-                      ),
-                    ];
+                      );
+                    }).toList();
                   },
                   getTooltipColor: (_) => GameThemeConstants.darkNavy,
                   maxContentWidth: 180,
