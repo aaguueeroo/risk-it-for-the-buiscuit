@@ -29,6 +29,7 @@ class SimulationController extends ChangeNotifier {
   String? _errorMessage;
   double _lastPortfolioValue = 0;
   bool _hasWon = false;
+  SimulationResult? _lastResult;
 
   List<SimulationDataPoint> get dataPoints => _dataPoints;
   bool get hasWon => _hasWon;
@@ -53,10 +54,12 @@ class SimulationController extends ChangeNotifier {
 
   Future<void> startSimulation() async {
     _status = SimulationStatus.running;
-    _dataPoints = [];
-    _events = [];
+    // Load cumulative data from previous years (don't reset)
+    _dataPoints = List.from(_gameEngine.cumulativeSimulationDataPoints);
+    _events = List.from(_gameEngine.cumulativeSimulationEvents);
     _activeEvents = [];
     _errorMessage = null;
+    final monthOffset = (currentYear - 1) * 12;
     notifyListeners();
     try {
       _skipToEnd.value = false;
@@ -71,14 +74,21 @@ class SimulationController extends ChangeNotifier {
           )
           .listen(
         (result) {
+          _lastResult = result;
           _dataPoints.add(SimulationDataPoint(
-            timestamp: result.timestamp,
+            timestamp: monthOffset + result.timestamp,
             value: result.portfolioValue,
           ));
           _lastPortfolioValue = result.portfolioValue;
           _activeEvents = result.getActiveEvents();
           if (result.event != null) {
-            _events.add(result.event!);
+            _events.add(SimulationEvent(
+              timestamp: monthOffset + result.event!.timestamp,
+              type: result.event!.type,
+              title: result.event!.title,
+              description: result.event!.description,
+              portfolioValueAtEvent: result.event!.portfolioValueAtEvent,
+            ));
           }
           notifyListeners();
         },
@@ -92,7 +102,11 @@ class SimulationController extends ChangeNotifier {
         },
         onDone: () {
           _status = SimulationStatus.complete;
-          _gameEngine.completeSimulation(_lastPortfolioValue);
+          _gameEngine.completeSimulation(_lastPortfolioValue,
+            finalCash: _lastResult?.finalCash,
+            finalHoldings: _lastResult?.finalHoldings,
+            cumulativeDataPoints: _dataPoints,
+            cumulativeEvents: _events);
           final state = _gameEngine.state;
           _hasWon = state != null &&
               WinConditionChecker.checkWin(
@@ -137,14 +151,4 @@ enum SimulationStatus {
   running,
   complete,
   error,
-}
-
-class SimulationDataPoint {
-  const SimulationDataPoint({
-    required this.timestamp,
-    required this.value,
-  });
-
-  final double timestamp;
-  final double value;
 }

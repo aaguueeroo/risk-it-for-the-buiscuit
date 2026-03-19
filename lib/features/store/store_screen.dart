@@ -217,6 +217,8 @@ class _StoreScreenState extends State<StoreScreen> {
                           holdings: controller.holdings,
                           onSell: controller.sellAsset,
                           statsSchema: controller.statsSchema,
+                          getAssetTotalReturnPercent:
+                              controller.getAssetTotalReturnPercent,
                         ),
                         const SizedBox(height: SpacingConstants.xl),
                         GameButton(
@@ -1151,11 +1153,13 @@ class _AssetSlotsSection extends StatefulWidget {
     required this.holdings,
     required this.onSell,
     required this.statsSchema,
+    required this.getAssetTotalReturnPercent,
   });
 
   final Map<String, PortfolioAsset> holdings;
   final void Function(String assetId) onSell;
   final List<StatSchema> statsSchema;
+  final double Function(PortfolioAsset asset) getAssetTotalReturnPercent;
 
   @override
   State<_AssetSlotsSection> createState() => _AssetSlotsSectionState();
@@ -1179,6 +1183,7 @@ class _AssetSlotsSectionState extends State<_AssetSlotsSection> {
           cardKey: cardKey,
           asset: asset,
           statsSchema: widget.statsSchema,
+          totalReturnPercent: widget.getAssetTotalReturnPercent(asset),
           onSell: () {
             widget.onSell(asset.assetId);
             _hideAssetTooltip();
@@ -1238,6 +1243,7 @@ class _AssetSlotsSectionState extends State<_AssetSlotsSection> {
               return _AssetSlotCard(
                 key: _getKeyForAsset(asset.assetId),
                 asset: asset,
+                totalReturnPercent: widget.getAssetTotalReturnPercent(asset),
                 onTap: () => _showAssetTooltip(context, asset),
               );
             },
@@ -1252,6 +1258,7 @@ class _AssetTooltipOverlay extends StatefulWidget {
     required this.cardKey,
     required this.asset,
     required this.statsSchema,
+    required this.totalReturnPercent,
     required this.onSell,
     required this.onDismiss,
   });
@@ -1259,6 +1266,7 @@ class _AssetTooltipOverlay extends StatefulWidget {
   final GlobalKey cardKey;
   final PortfolioAsset asset;
   final List<StatSchema> statsSchema;
+  final double totalReturnPercent;
   final VoidCallback onSell;
   final VoidCallback onDismiss;
 
@@ -1311,6 +1319,7 @@ class _AssetTooltipOverlayState extends State<_AssetTooltipOverlay> {
             cardPosition: _cardPosition!,
             cardSize: _cardSize!,
             asset: widget.asset,
+            totalReturnPercent: widget.totalReturnPercent,
             getStatDisplayName: _getStatDisplayName,
             onSell: widget.onSell,
           ),
@@ -1324,6 +1333,7 @@ class _AssetTooltipPopup extends StatelessWidget {
     required this.cardPosition,
     required this.cardSize,
     required this.asset,
+    required this.totalReturnPercent,
     required this.getStatDisplayName,
     required this.onSell,
   });
@@ -1331,6 +1341,7 @@ class _AssetTooltipPopup extends StatelessWidget {
   final Offset cardPosition;
   final Size cardSize;
   final PortfolioAsset asset;
+  final double totalReturnPercent;
   final String Function(String) getStatDisplayName;
   final VoidCallback onSell;
 
@@ -1368,6 +1379,7 @@ class _AssetTooltipPopup extends StatelessWidget {
             if (showAbove) ...[
               _AssetTooltipContent(
                 asset: asset,
+                totalReturnPercent: totalReturnPercent,
                 getStatDisplayName: getStatDisplayName,
                 onSell: onSell,
               ),
@@ -1392,6 +1404,7 @@ class _AssetTooltipPopup extends StatelessWidget {
               ),
               _AssetTooltipContent(
                 asset: asset,
+                totalReturnPercent: totalReturnPercent,
                 getStatDisplayName: getStatDisplayName,
                 onSell: onSell,
               ),
@@ -1448,17 +1461,19 @@ class _TooltipArrowPainter extends CustomPainter {
 class _AssetTooltipContent extends StatelessWidget {
   const _AssetTooltipContent({
     required this.asset,
+    required this.totalReturnPercent,
     required this.getStatDisplayName,
     required this.onSell,
   });
 
   final PortfolioAsset asset;
+  final double totalReturnPercent;
   final String Function(String) getStatDisplayName;
   final VoidCallback onSell;
 
   @override
   Widget build(BuildContext context) {
-    final returnColor = asset.expectedReturn >= 0
+    final totalReturnColor = totalReturnPercent >= 0
         ? GameThemeConstants.statPositive
         : GameThemeConstants.statNegative;
     final volatilityColor = GameThemeConstants.statNegative;
@@ -1486,10 +1501,18 @@ class _AssetTooltipContent extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            '${getStatDisplayName('return')}: ${asset.expectedReturn >= 0 ? '+' : ''}${asset.expectedReturn.toStringAsFixed(1)}%',
+            'Total Return: ${totalReturnPercent >= 0 ? '+' : ''}${totalReturnPercent.toStringAsFixed(1)}%',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: returnColor,
+              color: totalReturnColor,
               fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: SpacingConstants.xs),
+          Text(
+            '${getStatDisplayName('return')} (expected): ${asset.expectedReturn >= 0 ? '+' : ''}${asset.expectedReturn.toStringAsFixed(1)}%',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: totalReturnColor,
+              fontWeight: FontWeight.w500,
             ),
           ),
           const SizedBox(height: SpacingConstants.xs),
@@ -1546,14 +1569,19 @@ class _AssetTooltipContent extends StatelessWidget {
 }
 
 class _AssetSlotCard extends StatelessWidget {
-  const _AssetSlotCard({super.key, required this.asset, required this.onTap});
+  const _AssetSlotCard({
+    super.key,
+    required this.asset,
+    required this.totalReturnPercent,
+    required this.onTap,
+  });
 
   final PortfolioAsset asset;
+  final double totalReturnPercent;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final gainLoss = asset.gainLossPercent;
     return GestureDetector(
       onTap: onTap,
       child: GameCard(
@@ -1571,16 +1599,18 @@ class _AssetSlotCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
-                  gainLoss >= 0 ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                  totalReturnPercent >= 0
+                      ? Icons.arrow_drop_up
+                      : Icons.arrow_drop_down,
                   size: 18,
-                  color: gainLoss >= 0
+                  color: totalReturnPercent >= 0
                       ? GameThemeConstants.statPositive
                       : GameThemeConstants.statNegative,
                 ),
                 Text(
-                  '${gainLoss >= 0 ? '+' : ''}${gainLoss.toStringAsFixed(1)}%',
+                  '${totalReturnPercent >= 0 ? '+' : ''}${totalReturnPercent.toStringAsFixed(1)}%',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: gainLoss >= 0
+                    color: totalReturnPercent >= 0
                         ? GameThemeConstants.statPositive
                         : GameThemeConstants.statNegative,
                     fontWeight: FontWeight.w600,
