@@ -18,17 +18,18 @@
     },
     {
       "id": "uninsured_injury",
-      "title": "Uninsured medical bill",
+      "title": "Extra medical costs",
       "probability": 5,
       "sellIfNeeded": true,
-      "costMin": 1800,
-      "costMax": 12000,
-      "description": "An injury or procedure lands a bill your plan does not fully cover.",
+      "costPortfolioPercent": 0.018,
+      "costMin": 90,
+      "costMax": 2200,
+      "description": "Statutory insurance covers the essentials, but Zuzahlungen, glasses, dental, or a private-room upgrade still hit your wallet.",
       "descriptions": [
-        "An ER visit and follow-ups arrive with a shockingly large invoice.",
-        "Physical therapy and imaging stack up—and insurance leaves a big gap.",
-        "A sports injury needs surgery; the deductible and out-of-network share hurt.",
-        "You’re fine now, but the hospital billing department wants payment yesterday."
+        "Zuzahlungen for prescriptions and physio add up over the quarter.",
+        "New glasses and a dental bill land in the same month—only partly covered.",
+        "You chose a semi-private room for recovery; the Krankenkasse pays baseline, you pay the difference.",
+        "A specialist appointment (IGeL or private) and follow-up labs weren’t fully covered."
       ]
     },
     {

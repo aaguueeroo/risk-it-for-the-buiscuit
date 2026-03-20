@@ -8,6 +8,7 @@ import 'package:start_hack_2026/core/widgets/game_card.dart';
 import 'package:start_hack_2026/core/widgets/portfolio_evolution_chart.dart';
 import 'package:start_hack_2026/engine/game_engine.dart';
 import 'package:start_hack_2026/engine/score_engine.dart';
+import 'package:start_hack_2026/engine/win_condition_checker.dart';
 import 'package:start_hack_2026/modules/leaderboard/controllers/leaderboard_controller.dart';
 
 class GameWonScreen extends StatelessWidget {
@@ -65,12 +66,23 @@ class GameWonScreen extends StatelessWidget {
                 roundsPlayed: roundsPlayed,
               );
               final score = scoreResult.totalScore;
+              final won = WinConditionChecker.checkWin(
+                character: character,
+                portfolioHistory: portfolioHistory,
+              );
+              final bankrupt = finalValue <= 0;
+              final endgameKind = bankrupt
+                  ? _EndgameKind.bankrupt
+                  : won
+                  ? _EndgameKind.victory
+                  : _EndgameKind.seasonComplete;
               return SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _WinHeader(
+                    _EndgameHeader(
+                      kind: endgameKind,
                       winMessage: winConditions?.winMessage ?? 'You won!',
                       characterName: character.name,
                     ),
@@ -106,9 +118,16 @@ class GameWonScreen extends StatelessWidget {
   }
 }
 
-class _WinHeader extends StatelessWidget {
-  const _WinHeader({required this.winMessage, required this.characterName});
+enum _EndgameKind { victory, bankrupt, seasonComplete }
 
+class _EndgameHeader extends StatelessWidget {
+  const _EndgameHeader({
+    required this.kind,
+    required this.winMessage,
+    required this.characterName,
+  });
+
+  final _EndgameKind kind;
   final String winMessage;
   final String characterName;
 
@@ -116,49 +135,127 @@ class _WinHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GameCard(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            Image.asset(
-              _trophyAssetPath,
-              height: 120,
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) => Icon(
-                Icons.emoji_events,
-                size: 64,
-                color: GameThemeConstants.successDark,
+    return switch (kind) {
+      _EndgameKind.victory => GameCard(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              Image.asset(
+                _trophyAssetPath,
+                height: 120,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) => Icon(
+                  Icons.emoji_events,
+                  size: 64,
+                  color: GameThemeConstants.successDark,
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Victory!',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: GameThemeConstants.successDark,
+              const SizedBox(height: 16),
+              Text(
+                'Victory!',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: GameThemeConstants.successDark,
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              winMessage,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: GameThemeConstants.outlineColor,
+              const SizedBox(height: 8),
+              Text(
+                winMessage,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: GameThemeConstants.outlineColor,
+                ),
               ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '— $characterName',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontStyle: FontStyle.italic,
-                color: GameThemeConstants.outlineColorLight,
+              const SizedBox(height: 4),
+              Text(
+                '— $characterName',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontStyle: FontStyle.italic,
+                  color: GameThemeConstants.outlineColorLight,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    );
+      _EndgameKind.bankrupt => GameCard(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              Icon(
+                Icons.money_off,
+                size: 72,
+                color: GameThemeConstants.dangerDark,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Out of capital',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: GameThemeConstants.dangerDark,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Your total portfolio reached zero. The run is over.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: GameThemeConstants.outlineColor,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '— $characterName',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontStyle: FontStyle.italic,
+                  color: GameThemeConstants.outlineColorLight,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      _EndgameKind.seasonComplete => GameCard(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              Icon(
+                Icons.flag,
+                size: 72,
+                color: GameThemeConstants.primaryDark,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Run complete',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: GameThemeConstants.primaryDark,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'You finished the maximum years without hitting the win goal. Review your score below.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: GameThemeConstants.outlineColor,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '— $characterName',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontStyle: FontStyle.italic,
+                  color: GameThemeConstants.outlineColorLight,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    };
   }
 }
 

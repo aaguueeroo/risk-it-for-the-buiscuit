@@ -48,6 +48,13 @@ class StoreController extends ChangeNotifier {
   int get maxRounds => GameEngine.maxRounds;
   bool get canPlayNextRound => currentYear <= maxRounds;
   bool get hasReachedRoundLimit => !canPlayNextRound;
+
+  /// No capital left (cash + investments); same end flow as max years.
+  bool get isBankrupt => _gameEngine.isBankrupt;
+
+  /// Show final results instead of starting another simulation round.
+  bool get shouldShowResults => hasReachedRoundLimit || isBankrupt;
+
   List<PortfolioHistoryPoint> get portfolioHistory =>
       _gameEngine.portfolioHistory;
   double get currentPortfolioValue => _gameEngine.currentPortfolioValue;

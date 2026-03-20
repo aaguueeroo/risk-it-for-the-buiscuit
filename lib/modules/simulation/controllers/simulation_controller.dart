@@ -42,6 +42,12 @@ class SimulationController extends ChangeNotifier {
   bool get canPlayNextRound => currentYear <= maxRounds;
   bool get hasReachedRoundLimit => !canPlayNextRound;
 
+  bool get isBankrupt => _gameEngine.isBankrupt;
+
+  /// After this year (or from store), go to the results screen instead of the store.
+  bool get shouldShowResults =>
+      hasWon || hasReachedRoundLimit || isBankrupt;
+
   /// Returns the currently active market events and their impact.
   List<ActiveEvent> getActiveEvents() => List.unmodifiable(_activeEvents);
 
@@ -59,6 +65,13 @@ class SimulationController extends ChangeNotifier {
     if (!canPlayNextRound) {
       _status = SimulationStatus.complete;
       _errorMessage = 'Maximum of $maxRounds rounds reached.';
+      notifyListeners();
+      return;
+    }
+    if (_gameEngine.isBankrupt) {
+      _status = SimulationStatus.complete;
+      _errorMessage =
+          'You have no capital left. Use View Results on the store.';
       notifyListeners();
       return;
     }

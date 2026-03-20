@@ -124,6 +124,14 @@ class GameEngine {
   bool get canPlayNextRound => (_state?.currentYear ?? 1) <= maxRounds;
   bool get hasReachedRoundLimit => !canPlayNextRound;
 
+  /// Total portfolio (cash + market value of holdings) is depleted — no more play.
+  bool get isBankrupt {
+    if (_state == null) return false;
+    final v = currentPortfolioValue;
+    if (v.isNaN || v.isInfinite) return true;
+    return v <= 0;
+  }
+
   void startNewGame(Character character) {
     final initialCash = (character.initialStats['money'] ?? 0).toInt();
     final slotCount = _knowledgeSlotCount(character);

@@ -403,17 +403,19 @@ class _StoreScreenState extends State<StoreScreen> {
                           children: [
                             Expanded(
                               child: GameButton(
-                                label: controller.hasReachedRoundLimit
+                                label: controller.shouldShowResults
                                     ? 'View Results'
                                     : 'Play',
-                                icon: controller.hasReachedRoundLimit
-                                    ? Icons.emoji_events
+                                icon: controller.shouldShowResults
+                                    ? (controller.isBankrupt
+                                        ? Icons.money_off
+                                        : Icons.emoji_events)
                                     : null,
-                                iconWidget: controller.hasReachedRoundLimit
+                                iconWidget: controller.shouldShowResults
                                     ? null
                                     : const CartoonPlayIcon(),
                                 onPressed: () {
-                                  if (controller.hasReachedRoundLimit) {
+                                  if (controller.shouldShowResults) {
                                     context.pushReplacement('/game-won');
                                     return;
                                   }
