@@ -19,7 +19,7 @@ Your choice shapes how you can invest, how you react to market swings, and how y
 
 ### Knowledge
 
-Knowledge is obtained through store items (e.g. "Read a Book", "Take an Online Course", "Consult a Financial Advisor"). Once acquired, **knowledge cannot be removed**—it permanently improves your stats.
+Knowledge is obtained through store items (e.g. "Read the Wiki (For Real)", "2am YouTube University", "Money Adult on Speed Dial"). Once acquired, **knowledge cannot be removed**—it permanently improves your stats.
 
 Knowledge items can be **combined to increase their level** (up to level 3). When you own two identical items of the same level, you can merge them into a single higher-level item with stronger stat effects. This lets you deepen your expertise over time.
 

@@ -28,7 +28,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Leaderboard'),
+        title: const Text('Top Players'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
@@ -165,13 +165,16 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                         const SizedBox(height: SpacingConstants.sm),
                     itemBuilder: (context, index) {
                       final entry = controller.entries[index];
+                      final int rank = index + 1;
                       return GameCard(
+                        backgroundColor:
+                            LeaderboardPodium.listCardBackgroundForRank(rank),
                         child: Row(
                           children: [
                             SizedBox(
                               width: 36,
                               child: Text(
-                                '#${index + 1}',
+                                '#$rank',
                                 style: Theme.of(context).textTheme.titleMedium
                                     ?.copyWith(fontWeight: FontWeight.bold),
                               ),

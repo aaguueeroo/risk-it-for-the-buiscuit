@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -58,13 +57,6 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
       if (!b.contains(value)) return false;
     }
     return true;
-  }
-
-  Future<void> _unlockPanicSellerForDebug() async {
-    final unlockedIds = await _achievementPreferences.getUnlockedIds();
-    unlockedIds.add('panic_seller');
-    await _achievementPreferences.saveUnlockedIds(unlockedIds);
-    await _loadPersistedAchievements();
   }
 
   @override
@@ -168,14 +160,6 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Achievements'),
-        actions: [
-          if (kDebugMode)
-            IconButton(
-              tooltip: 'Unlock Panic Seller',
-              icon: const Icon(Icons.bug_report),
-              onPressed: _unlockPanicSellerForDebug,
-            ),
-        ],
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),

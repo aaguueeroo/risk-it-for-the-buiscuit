@@ -2,58 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:start_hack_2026/core/constants/game_theme_constants.dart';
 import 'package:start_hack_2026/core/constants/spacing_constants.dart';
 import 'package:start_hack_2026/core/constants/store_asset_education.dart';
-import 'package:start_hack_2026/core/widgets/comic_tooltip_anchored_popup.dart';
 import 'package:start_hack_2026/domain/entities/store_item.dart';
 
 /// Width for store asset education (wider than held-asset stats tooltip).
 const double kStoreAssetEducationTooltipWidth = 276;
 
-/// Anchored to [layerLink] via [CompositedTransformTarget] on the store card —
-/// follows the card while the store scrolls.
-class StoreAssetEducationPanel extends StatelessWidget {
-  const StoreAssetEducationPanel({
-    super.key,
-    required this.layerLink,
-    required this.asset,
-    required this.onDismiss,
-  });
-
-  final LayerLink layerLink;
-  final StoreItemAsset asset;
-  final VoidCallback onDismiss;
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Positioned.fill(
-          child: IgnorePointer(
-            ignoring: true,
-            child: const SizedBox.expand(),
-          ),
-        ),
-        ComicTooltipFollowerBelow(
-          layerLink: layerLink,
-          tooltipWidth: kStoreAssetEducationTooltipWidth,
-          content: _StoreAssetEducationCard(
-            asset: asset,
-            onDismiss: onDismiss,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _StoreAssetEducationCard extends StatelessWidget {
-  const _StoreAssetEducationCard({
-    required this.asset,
-    required this.onDismiss,
-  });
+/// The scrollable card content for a store asset education popup.
+class StoreAssetEducationContent extends StatelessWidget {
+  const StoreAssetEducationContent({super.key, required this.asset});
 
   final StoreItemAsset asset;
-  final VoidCallback onDismiss;
 
   @override
   Widget build(BuildContext context) {
@@ -86,33 +44,12 @@ class _StoreAssetEducationCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Text(
-                      asset.name,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: GameThemeConstants.primaryDark,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: onDismiss,
-                    tooltip: 'Close',
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                      minWidth: 32,
-                      minHeight: 32,
-                    ),
-                    icon: Icon(
-                      Icons.close,
-                      size: 20,
-                      color: GameThemeConstants.outlineColor,
-                    ),
-                  ),
-                ],
+              Text(
+                asset.name,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: GameThemeConstants.primaryDark,
+                ),
               ),
               const SizedBox(height: SpacingConstants.xs),
               Text(

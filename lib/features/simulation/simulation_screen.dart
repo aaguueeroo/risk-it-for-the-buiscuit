@@ -65,25 +65,21 @@ class _SimulationScreenState extends State<SimulationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Simulation'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () async {
-            await context.read<StoreController>().refreshFromGameState();
-            if (context.mounted) context.pop();
-          },
-        ),
-        actions: [
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Simulation'),
+          automaticallyImplyLeading: false,
+          actions: [
           IconButton(
             icon: const Icon(Icons.bug_report),
             onPressed: () => context.push('/simulation-debug'),
             tooltip: 'Debug',
           ),
-        ],
-      ),
-      body: Container(
+          ],
+        ),
+        body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -111,7 +107,7 @@ class _SimulationScreenState extends State<SimulationScreen> {
                           await context
                               .read<StoreController>()
                               .refreshFromGameState();
-                          if (context.mounted) context.pop();
+                          if (context.mounted) context.go('/store');
                         },
                         variant: GameButtonVariant.primary,
                       ),
@@ -267,7 +263,7 @@ class _SimulationScreenState extends State<SimulationScreen> {
                             if (controller.shouldShowResults) {
                               context.pushReplacement('/game-won');
                             } else {
-                              context.pop();
+                              context.go('/store');
                             }
                           },
                           variant: GameButtonVariant.success,
@@ -279,6 +275,7 @@ class _SimulationScreenState extends State<SimulationScreen> {
             );
           },
         ),
+      ),
       ),
     );
   }

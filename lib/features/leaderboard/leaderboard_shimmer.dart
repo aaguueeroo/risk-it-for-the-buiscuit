@@ -3,6 +3,7 @@ import 'package:shimmer/shimmer.dart';
 import 'package:start_hack_2026/core/constants/game_theme_constants.dart';
 import 'package:start_hack_2026/core/constants/spacing_constants.dart';
 import 'package:start_hack_2026/core/widgets/game_card.dart';
+import 'package:start_hack_2026/features/leaderboard/leaderboard_podium.dart';
 
 /// Skeleton layout matching [LeaderboardScreen] (podium + list) while scores load.
 class LeaderboardShimmer extends StatelessWidget {
@@ -27,19 +28,6 @@ class LeaderboardShimmer extends StatelessWidget {
             ),
             child: Column(
               children: [
-                Center(
-                  child: Container(
-                    width: 160,
-                    height: 26,
-                    decoration: BoxDecoration(
-                      color: _bone,
-                      borderRadius: BorderRadius.circular(
-                        GameThemeConstants.radiusSmall,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: SpacingConstants.md * 2),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
@@ -85,6 +73,8 @@ class LeaderboardShimmer extends StatelessWidget {
                   const SizedBox(height: SpacingConstants.sm),
               itemBuilder: (BuildContext context, int index) {
                 return GameCard(
+                  backgroundColor:
+                      LeaderboardPodium.listCardBackgroundForRank(index + 1),
                   child: Row(
                     children: [
                       Container(

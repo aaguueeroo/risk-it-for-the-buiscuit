@@ -16,6 +16,20 @@ class LeaderboardPodium extends StatelessWidget {
   static const Color _bronze = Color(0xFFD4A574);
   static const Color _bronzeDeep = Color(0xFF9A6B3F);
 
+  /// Full-list row background for ranks 1–3; matches each podium step [accent].
+  static Color? listCardBackgroundForRank(int rankOneBased) {
+    switch (rankOneBased) {
+      case 1:
+        return GameThemeConstants.warningLight;
+      case 2:
+        return _silver;
+      case 3:
+        return _bronze;
+      default:
+        return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (topEntries.isEmpty) {
@@ -39,15 +53,6 @@ class LeaderboardPodium extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Text(
-            'Top players',
-            style: TextStyle(
-              fontFamily: 'Fredoka',
-              fontSize: 22,
-              fontWeight: FontWeight.w600,
-              color: GameThemeConstants.outlineColor,
-            ),
-          ),
           const SizedBox(height: SpacingConstants.md * 2),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,

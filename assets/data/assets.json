@@ -2,7 +2,7 @@
   "assets": [
     {
       "id": "cash_savings",
-      "name": "Cash / Savings Account",
+      "name": "Piggy Bank Prime",
       "icon": "savings",
       "price": 50,
       "expectedReturn": 0.25,
@@ -13,7 +13,7 @@
     },
     {
       "id": "swiss_bonds",
-      "name": "Swiss Government Bonds (CHF)",
+      "name": "Swiss Army Knife Bonds",
       "icon": "shield",
       "price": 100,
       "expectedReturn": 1.0,
@@ -25,7 +25,7 @@
     },
     {
       "id": "eu_bonds",
-      "name": "EU Government Bonds (EUR)",
+      "name": "Eurozone Cozy Bonds",
       "icon": "euro",
       "price": 100,
       "expectedReturn": 2.5,
@@ -37,7 +37,7 @@
     },
     {
       "id": "corporate_bonds",
-      "name": "Corporate Bonds",
+      "name": "Big Company IOU Pack",
       "icon": "business",
       "price": 120,
       "expectedReturn": 4.5,
@@ -49,7 +49,7 @@
     },
     {
       "id": "reit",
-      "name": "Real Estate Fund (REIT)",
+      "name": "Landlord Simulator REIT",
       "icon": "apartment",
       "price": 200,
       "expectedReturn": 5.5,
@@ -60,7 +60,7 @@
     },
     {
       "id": "smi_fund",
-      "name": "Swiss Index Fund (SMI)",
+      "name": "SMI Speedrun Index",
       "icon": "show_chart",
       "price": 150,
       "expectedReturn": 7.0,
@@ -71,7 +71,7 @@
     },
     {
       "id": "world_etf",
-      "name": "Global Index Fund (World ETF)",
+      "name": "Whole Planet Bucket ETF",
       "icon": "public",
       "price": 150,
       "expectedReturn": 8.0,
@@ -82,7 +82,7 @@
     },
     {
       "id": "single_stocks",
-      "name": "Single Stocks",
+      "name": "Single Stock Roulette",
       "icon": "trending_up",
       "price": 100,
       "expectedReturn": 20,
@@ -93,7 +93,7 @@
     },
     {
       "id": "gold",
-      "name": "Gold / Commodities",
+      "name": "Shiny Rock Inflation Shield",
       "icon": "diamond",
       "price": 120,
       "expectedReturn": 2,
@@ -104,7 +104,7 @@
     },
     {
       "id": "crypto",
-      "name": "Bitcoin / Crypto",
+      "name": "To The Moon Token Pack",
       "icon": "attach_money",
       "price": 80,
       "expectedReturn": 20,

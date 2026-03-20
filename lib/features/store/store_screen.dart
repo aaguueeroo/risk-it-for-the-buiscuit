@@ -1,4 +1,4 @@
-import 'dart:async' show Completer, unawaited;
+import 'dart:async' show unawaited;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -11,7 +11,6 @@ import 'package:start_hack_2026/core/extensions/icon_extension.dart';
 import 'package:start_hack_2026/core/widgets/character_preview_stat_bars.dart';
 import 'package:start_hack_2026/core/widgets/cartoon_play_icon.dart';
 import 'package:start_hack_2026/core/widgets/comic_tooltip_anchored_popup.dart';
-import 'package:start_hack_2026/core/widgets/comic_tooltip_arrow_painter.dart';
 import 'package:start_hack_2026/core/widgets/game_button.dart';
 import 'package:start_hack_2026/core/widgets/game_card.dart';
 import 'package:start_hack_2026/core/widgets/portfolio_evolution_chart.dart';
@@ -28,6 +27,8 @@ import 'package:start_hack_2026/modules/store/controllers/store_controller.dart'
 
 const String _coinAssetPath = 'assets/images/coin.png';
 const String _allocationChartAssetPath = 'assets/images/chart.png';
+const int _storeOfferGridCrossAxisCount = 2;
+const double _storeOfferGridChildAspectRatio = 0.8;
 
 enum _StoreHudPanel { character }
 
@@ -86,7 +87,7 @@ class _StoreScreenState extends State<StoreScreen> {
   final GlobalKey _assetSectionContentKey = GlobalKey();
   final Map<String, GlobalKey> _storeCardKeys = <String, GlobalKey>{};
   final Map<String, GlobalKey> _assetCardKeys = <String, GlobalKey>{};
-  final Map<String, LayerLink> _storeOfferLayerLinks = <String, LayerLink>{};
+  String? _activeItemInfoId;
   _PurchaseFlyInProgress? _purchaseFly;
 
   @override
@@ -114,11 +115,6 @@ class _StoreScreenState extends State<StoreScreen> {
 
   GlobalKey _globalKeyForAssetCard(String assetId) {
     return _assetCardKeys.putIfAbsent(assetId, GlobalKey.new);
-  }
-
-  LayerLink _layerLinkForStoreOfferSlot(int index, StoreItem item) {
-    final k = '$index-${_storeItemStorageKey(item)}';
-    return _storeOfferLayerLinks.putIfAbsent(k, LayerLink.new);
   }
 
   Rect? _rectFromContext(BuildContext? ctx) {
@@ -157,6 +153,7 @@ class _StoreScreenState extends State<StoreScreen> {
   ) async {
     final StoreController controller = context.read<StoreController>();
     if (!controller.canBuy(item)) return;
+    bool purchaseCompleted = false;
     try {
       final Rect? dest = _resolveDestinationRect(controller, item);
       final BuildContext? sourceContext = sourceKey.currentContext;
@@ -183,7 +180,12 @@ class _StoreScreenState extends State<StoreScreen> {
       final Offset stackOrigin = stackBox.localToGlobal(Offset.zero);
       final Rect localFrom = sourceRect.shift(-stackOrigin);
       final Rect localTo = dest.shift(-stackOrigin);
-      final Completer<void> completer = Completer<void>();
+      final bool purchased = controller.purchase(item, offerIndex: offerIndex);
+      if (!purchased) {
+        return;
+      }
+      purchaseCompleted = true;
+      if (!mounted) return;
       setState(() {
         _purchaseFly = _PurchaseFlyInProgress(
           item: item,
@@ -194,20 +196,14 @@ class _StoreScreenState extends State<StoreScreen> {
             setState(() {
               _purchaseFly = null;
             });
-            if (!completer.isCompleted) {
-              completer.complete();
-            }
           },
         );
       });
-      await completer.future;
-      if (!mounted) return;
-      controller.purchase(item, offerIndex: offerIndex);
     } catch (e, st) {
       if (kDebugMode) {
         print('Store purchase animation failed: $e\n$st');
       }
-      if (mounted) {
+      if (mounted && !purchaseCompleted) {
         controller.purchase(item, offerIndex: offerIndex);
       }
     }
@@ -215,6 +211,16 @@ class _StoreScreenState extends State<StoreScreen> {
 
   void _showPortfolioOverlay(BuildContext context, StoreController controller) {
     _hidePortfolioOverlay();
+    final double safeBottomInset = MediaQuery.paddingOf(context).bottom;
+    const double storeBottomBarHeight =
+        SpacingConstants.md * 2 +
+        SpacingConstants.xl +
+        GameThemeConstants.bevelOffset;
+    final double popupBottom =
+        safeBottomInset +
+        SpacingConstants.sm +
+        storeBottomBarHeight +
+        SpacingConstants.sm;
     _portfolioOverlayEntry = OverlayEntry(
       builder: (overlayContext) => Positioned.fill(
         child: _PortfolioOverlay(
@@ -222,6 +228,7 @@ class _StoreScreenState extends State<StoreScreen> {
           portfolioHistory: controller.portfolioHistory,
           currentPortfolioValue: controller.currentPortfolioValue,
           currentYear: controller.currentYear,
+          popupBottom: popupBottom,
           onDismiss: _hidePortfolioOverlay,
         ),
       ),
@@ -234,29 +241,47 @@ class _StoreScreenState extends State<StoreScreen> {
     _portfolioOverlayEntry = null;
   }
 
-  void _showStoreAssetEducation(
-    BuildContext context,
-    LayerLink layerLink,
-    StoreItemAsset asset,
-  ) {
+  void _showItemInfo(BuildContext context, GlobalKey cardKey, StoreItem item) {
+    if (_activeItemInfoId == item.id) {
+      _hideStoreAssetEducation();
+      return;
+    }
     _hideStoreAssetEducation();
+    final RenderBox? box =
+        cardKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) {
+      return;
+    }
+    final Offset cardPosition = box.localToGlobal(Offset.zero);
+    final Size cardSize = box.size;
+    _activeItemInfoId = item.id;
     _storeAssetEducationOverlayEntry = OverlayEntry(
-      builder: (overlayContext) => Positioned.fill(
-        child: StoreAssetEducationPanel(
-          layerLink: layerLink,
-          asset: asset,
+      builder: (overlayContext) => switch (item) {
+        StoreItemAsset() => _StoreAssetEducationPositioned(
+          cardPosition: cardPosition,
+          cardSize: cardSize,
+          asset: item,
           onDismiss: _hideStoreAssetEducation,
         ),
-      ),
+        StoreItemItem() => _KnowledgeItemInfoPositioned(
+          cardPosition: cardPosition,
+          cardSize: cardSize,
+          item: item,
+          statsSchema: context.read<StoreController>().statsSchema,
+          onDismiss: _hideStoreAssetEducation,
+        ),
+      },
     );
-    Overlay.of(context, rootOverlay: true).insert(
-      _storeAssetEducationOverlayEntry!,
-    );
+    Overlay.of(
+      context,
+      rootOverlay: true,
+    ).insert(_storeAssetEducationOverlayEntry!);
   }
 
   void _hideStoreAssetEducation() {
     _storeAssetEducationOverlayEntry?.remove();
     _storeAssetEducationOverlayEntry = null;
+    _activeItemInfoId = null;
   }
 
   @override
@@ -276,13 +301,14 @@ class _StoreScreenState extends State<StoreScreen> {
             SpacingConstants.md * 2 +
             SpacingConstants.xl +
             GameThemeConstants.bevelOffset;
-        const double storeScrollBottomPadding =
-            SpacingConstants.md +
+        final double storeScrollBottomPadding =
+            safeBottomInset +
+            SpacingConstants.sm +
             storeBottomBarHeight +
-            SpacingConstants.sm;
+            SpacingConstants.md;
         return Scaffold(
           body: Container(
-              decoration: const BoxDecoration(
+            decoration: const BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
@@ -336,10 +362,10 @@ class _StoreScreenState extends State<StoreScreen> {
                           clipBehavior: Clip.none,
                           children: [
                             SingleChildScrollView(
-                              padding: const EdgeInsets.only(
+                              padding: EdgeInsets.only(
                                 left: SpacingConstants.md,
                                 right: SpacingConstants.md,
-                                top: SpacingConstants.md,
+                                top: padding.top + SpacingConstants.md,
                                 bottom: storeScrollBottomPadding,
                               ),
                               child: Column(
@@ -378,10 +404,8 @@ class _StoreScreenState extends State<StoreScreen> {
                                             .storeAssetAllocationPercentPerBuy,
                                     getStoreAssetPurchaseCashCost: controller
                                         .getStoreAssetPurchaseCashCost,
-                                    onShowStoreAssetEducation:
-                                        _showStoreAssetEducation,
-                                    layerLinkForStoreOfferSlot:
-                                        _layerLinkForStoreOfferSlot,
+                                    onShowItemInfo: _showItemInfo,
+                                    stableKeyForStoreItem: _storeItemStorageKey,
                                   ),
                                   const SizedBox(height: SpacingConstants.lg),
                                   _ItemSlotsSection(
@@ -391,7 +415,7 @@ class _StoreScreenState extends State<StoreScreen> {
                                     onCombine: controller.combineItems,
                                     canCombine: controller.canCombineItems,
                                   ),
-                                  const SizedBox(height: SpacingConstants.sm),
+                                  const SizedBox(height: SpacingConstants.xs),
                                   _StoreStatsPanel(
                                     stats: controller.stats,
                                     statSchemas: _filterStoreStatsByCategory(
@@ -417,7 +441,7 @@ class _StoreScreenState extends State<StoreScreen> {
                                     getAssetTotalReturnPercent:
                                         controller.getAssetTotalReturnPercent,
                                   ),
-                                  const SizedBox(height: SpacingConstants.sm),
+                                  const SizedBox(height: SpacingConstants.xs),
                                   _StoreStatsPanel(
                                     stats: controller.stats,
                                     statSchemas: _filterStoreStatsByCategory(
@@ -442,7 +466,7 @@ class _StoreScreenState extends State<StoreScreen> {
                       Positioned(
                         left: SpacingConstants.md,
                         right: SpacingConstants.md,
-                        bottom: safeBottomInset + SpacingConstants.md,
+                        bottom: safeBottomInset,
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
@@ -453,8 +477,8 @@ class _StoreScreenState extends State<StoreScreen> {
                                     : 'Play',
                                 icon: controller.shouldShowResults
                                     ? (controller.isBankrupt
-                                        ? Icons.money_off
-                                        : Icons.emoji_events)
+                                          ? Icons.money_off
+                                          : Icons.emoji_events)
                                     : null,
                                 iconWidget: controller.shouldShowResults
                                     ? null
@@ -487,16 +511,23 @@ class _StoreScreenState extends State<StoreScreen> {
                               ),
                             ),
                             const SizedBox(width: SpacingConstants.sm),
-                            _CartoonCircleButton(
-                              icon: Icons.person,
-                              onPressed: () {
-                                setState(() {
-                                  _activeHudPanel =
-                                      _activeHudPanel == _StoreHudPanel.character
-                                          ? null
-                                          : _StoreHudPanel.character;
-                                });
-                              },
+                            GestureDetector(
+                              onLongPressDown: (_) => setState(
+                                () =>
+                                    _activeHudPanel = _StoreHudPanel.character,
+                              ),
+                              onLongPressUp: () =>
+                                  setState(() => _activeHudPanel = null),
+                              onLongPressCancel: () =>
+                                  setState(() => _activeHudPanel = null),
+                              child: const SizedBox(
+                                width: 52,
+                                height: 52,
+                                child: _CartoonCircleButton(
+                                  icon: Icons.person,
+                                  onPressed: null,
+                                ),
+                              ),
                             ),
                           ],
                         ),
@@ -525,12 +556,10 @@ class _StoreScreenState extends State<StoreScreen> {
                           controller: controller,
                           bottomBarHeight: storeBottomBarHeight,
                           safeBottomInset: safeBottomInset,
-                          onDismiss: () =>
-                              setState(() => _activeHudPanel = null),
                         ),
                     ],
                   ),
-            ),
+          ),
         );
       },
     );
@@ -542,27 +571,27 @@ class _StoreHudOverlay extends StatelessWidget {
     required this.controller,
     required this.bottomBarHeight,
     required this.safeBottomInset,
-    required this.onDismiss,
   });
 
   final StoreController controller;
   final double bottomBarHeight;
   final double safeBottomInset;
-  final VoidCallback onDismiss;
 
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.sizeOf(context).height;
     final maxPopupHeight = screenHeight * 0.6;
-    final popupBottom = safeBottomInset + SpacingConstants.md + bottomBarHeight +
+    final popupBottom =
+        safeBottomInset +
+        SpacingConstants.sm +
+        bottomBarHeight +
         SpacingConstants.sm;
     return Positioned.fill(
       child: Stack(
         children: [
           Positioned.fill(
-            child: Listener(
-              onPointerUp: (_) => onDismiss(),
-              behavior: HitTestBehavior.translucent,
+            child: IgnorePointer(
+              ignoring: true,
               child: const SizedBox.expand(),
             ),
           ),
@@ -594,8 +623,9 @@ class _StoreHudCharacterContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imagePath =
-        CharacterImageConstants.getImagePathForCharacter(character.id);
+    final imagePath = CharacterImageConstants.getImagePathForCharacter(
+      character.id,
+    );
     return Padding(
       padding: const EdgeInsets.all(SpacingConstants.md),
       child: Column(
@@ -617,10 +647,7 @@ class _StoreHudCharacterContent extends StatelessWidget {
                 width: 80,
                 height: 80,
                 child: imagePath != null
-                    ? Image.asset(
-                        imagePath,
-                        fit: BoxFit.contain,
-                      )
+                    ? Image.asset(imagePath, fit: BoxFit.contain)
                     : Icon(
                         character.icon.toIconData(),
                         color: GameThemeConstants.primaryDark,
@@ -641,8 +668,9 @@ class _StoreHudCharacterContent extends StatelessWidget {
             ),
             decoration: BoxDecoration(
               color: GameThemeConstants.accentLight.withValues(alpha: 0.28),
-              borderRadius:
-                  BorderRadius.circular(SpacingConstants.gameRadiusSm),
+              borderRadius: BorderRadius.circular(
+                SpacingConstants.gameRadiusSm,
+              ),
               border: Border.all(
                 color: GameThemeConstants.outlineColor,
                 width: GameThemeConstants.outlineThicknessSmall,
@@ -665,10 +693,7 @@ class _StoreHudCharacterContent extends StatelessWidget {
 }
 
 class _CartoonCircleButton extends StatelessWidget {
-  const _CartoonCircleButton({
-    required this.icon,
-    this.onPressed,
-  });
+  const _CartoonCircleButton({required this.icon, this.onPressed});
 
   final IconData icon;
   final VoidCallback? onPressed;
@@ -704,11 +729,7 @@ class _CartoonCircleButton extends StatelessWidget {
             ),
           ],
         ),
-        child: Icon(
-          icon,
-          color: Colors.white,
-          size: 26,
-        ),
+        child: Icon(icon, color: Colors.white, size: 26),
       ),
     );
   }
@@ -741,20 +762,20 @@ class _TotalCapitalContainer extends StatelessWidget {
               : GameThemeConstants.primaryDark)
         : GameThemeConstants.primaryDark;
 
-    final showYoYPanel = showYearOverYearComparison &&
+    final showYoYPanel =
+        showYearOverYearComparison &&
         hasBaseline &&
         comparisonYearLabel != null;
-    final baselineNonZero =
-        hasBaseline && baselineValue!.abs() >= 1e-6;
+    final baselineNonZero = hasBaseline && baselineValue!.abs() >= 1e-6;
     final pctChange = baselineNonZero ? (diff / baselineValue!) * 100.0 : null;
 
     final deltaColor = !hasBaseline
         ? GameThemeConstants.outlineColorLight
         : (isGrowing
-            ? GameThemeConstants.statPositive
-            : isDecreasing
-            ? GameThemeConstants.statNegative
-            : GameThemeConstants.outlineColorLight);
+              ? GameThemeConstants.statPositive
+              : isDecreasing
+              ? GameThemeConstants.statNegative
+              : GameThemeConstants.outlineColorLight);
 
     final String absLine = !hasBaseline
         ? '—'
@@ -791,27 +812,27 @@ class _TotalCapitalContainer extends StatelessWidget {
                           'vs year $comparisonYearLabel',
                           style: Theme.of(context).textTheme.labelSmall
                               ?.copyWith(
-                            color: GameThemeConstants.outlineColorLight,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.2,
-                          ),
+                                color: GameThemeConstants.outlineColorLight,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.2,
+                              ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           absLine + '\$',
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(
-                            color: deltaColor,
-                            fontWeight: FontWeight.w800,
-                          ),
+                                color: deltaColor,
+                                fontWeight: FontWeight.w800,
+                              ),
                         ),
                         Text(
                           pctLine,
                           style: Theme.of(context).textTheme.titleSmall
                               ?.copyWith(
-                            color: deltaColor,
-                            fontWeight: FontWeight.w700,
-                          ),
+                                color: deltaColor,
+                                fontWeight: FontWeight.w700,
+                              ),
                         ),
                       ],
                     ),
@@ -825,11 +846,7 @@ class _TotalCapitalContainer extends StatelessWidget {
                         : MainAxisAlignment.center,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        Icons.attach_money,
-                        size: 48,
-                        color: valueColor,
-                      ),
+                      Icon(Icons.attach_money, size: 48, color: valueColor),
                       const SizedBox(width: SpacingConstants.xs),
                       Flexible(
                         child: FittedBox(
@@ -839,14 +856,12 @@ class _TotalCapitalContainer extends StatelessWidget {
                               : Alignment.center,
                           child: Text(
                             totalCapital.toStringAsFixed(0),
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineMedium
+                            style: Theme.of(context).textTheme.headlineMedium
                                 ?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 48,
-                              color: valueColor,
-                            ),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 48,
+                                  color: valueColor,
+                                ),
                           ),
                         ),
                       ),
@@ -977,6 +992,7 @@ class _PortfolioOverlay extends StatefulWidget {
     required this.portfolioHistory,
     required this.currentPortfolioValue,
     required this.currentYear,
+    required this.popupBottom,
     required this.onDismiss,
   });
 
@@ -984,6 +1000,7 @@ class _PortfolioOverlay extends StatefulWidget {
   final List<PortfolioHistoryPoint> portfolioHistory;
   final double currentPortfolioValue;
   final int currentYear;
+  final double popupBottom;
   final VoidCallback onDismiss;
 
   @override
@@ -1017,40 +1034,28 @@ class _PortfolioOverlayState extends State<_PortfolioOverlay> {
     return Stack(
       children: [
         Positioned.fill(
-          child: IgnorePointer(
-            ignoring: true,
-            child: const SizedBox.expand(),
-          ),
+          child: IgnorePointer(ignoring: true, child: const SizedBox.expand()),
         ),
         if (_buttonPosition != null && _buttonSize != null) ...[
           Builder(
             builder: (context) {
-              final screenWidth = MediaQuery.of(context).size.width;
-              final screenHeight = MediaQuery.of(context).size.height;
-              final popupWidth = screenWidth - (SpacingConstants.md * 2);
-              const popupHeight = 360.0;
+              final screenHeight = MediaQuery.sizeOf(context).height;
+              final maxPopupHeight = screenHeight * 0.6;
               const left = SpacingConstants.md;
-              final top =
-                  _buttonPosition!.dy +
-                  _buttonSize!.height +
-                  SpacingConstants.sm;
-              final clampedTop = top.clamp(
-                SpacingConstants.md,
-                screenHeight - popupHeight - SpacingConstants.md,
-              );
-              final arrowCenterX =
-                  _buttonPosition!.dx + _buttonSize!.width / 2 - left;
               return Positioned(
                 left: left,
-                top: clampedTop,
-                width: popupWidth,
-                height: popupHeight,
-                child: _PortfolioPopup(
-                  portfolioHistory: widget.portfolioHistory,
-                  currentPortfolioValue: widget.currentPortfolioValue,
-                  currentYear: widget.currentYear,
-                  arrowCenterX: arrowCenterX,
-                  onDismiss: widget.onDismiss,
+                right: left,
+                bottom: widget.popupBottom,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxHeight: maxPopupHeight),
+                  child: SingleChildScrollView(
+                    child: _PortfolioPopup(
+                      portfolioHistory: widget.portfolioHistory,
+                      currentPortfolioValue: widget.currentPortfolioValue,
+                      currentYear: widget.currentYear,
+                      onDismiss: widget.onDismiss,
+                    ),
+                  ),
                 ),
               );
             },
@@ -1066,14 +1071,12 @@ class _PortfolioPopup extends StatelessWidget {
     required this.portfolioHistory,
     required this.currentPortfolioValue,
     required this.currentYear,
-    required this.arrowCenterX,
     required this.onDismiss,
   });
 
   final List<PortfolioHistoryPoint> portfolioHistory;
   final double currentPortfolioValue;
   final int currentYear;
-  final double arrowCenterX;
   final VoidCallback onDismiss;
 
   List<PortfolioHistoryPoint> _buildDataPoints() {
@@ -1101,17 +1104,6 @@ class _PortfolioPopup extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(
-            height: 12,
-            child: CustomPaint(
-              painter: ComicTooltipArrowPainter(
-                color: GameThemeConstants.creamSurface,
-                borderColor: GameThemeConstants.outlineColor,
-                arrowCenterX: arrowCenterX,
-                pointingDown: false,
-              ),
-            ),
-          ),
           Container(
             padding: const EdgeInsets.all(SpacingConstants.md),
             decoration: BoxDecoration(
@@ -1143,9 +1135,8 @@ class _PortfolioPopup extends StatelessWidget {
                     Expanded(
                       child: Text(
                         'Portfolio Evolution',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                     ),
                     IconButton(
@@ -1233,8 +1224,8 @@ class _BuySection extends StatelessWidget {
     required this.cash,
     required this.storeAssetAllocationPercentPerBuy,
     required this.getStoreAssetPurchaseCashCost,
-    required this.onShowStoreAssetEducation,
-    required this.layerLinkForStoreOfferSlot,
+    required this.onShowItemInfo,
+    required this.stableKeyForStoreItem,
   });
 
   final List<StoreItem> storeOffer;
@@ -1254,13 +1245,9 @@ class _BuySection extends StatelessWidget {
   final int cash;
   final int storeAssetAllocationPercentPerBuy;
   final int Function(StoreItemAsset asset) getStoreAssetPurchaseCashCost;
-  final void Function(
-    BuildContext context,
-    LayerLink layerLink,
-    StoreItemAsset asset,
-  )
-  onShowStoreAssetEducation;
-  final LayerLink Function(int index, StoreItem item) layerLinkForStoreOfferSlot;
+  final void Function(BuildContext context, GlobalKey cardKey, StoreItem item)
+  onShowItemInfo;
+  final String Function(StoreItem item) stableKeyForStoreItem;
 
   @override
   Widget build(BuildContext context) {
@@ -1268,8 +1255,6 @@ class _BuySection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               child: Column(
@@ -1326,7 +1311,6 @@ class _BuySection extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: SpacingConstants.sm),
         _StoreGrid(
           items: storeOffer,
           canBuy: canBuy,
@@ -1335,8 +1319,8 @@ class _BuySection extends StatelessWidget {
           statsSchema: statsSchema,
           storeAssetAllocationPercentPerBuy: storeAssetAllocationPercentPerBuy,
           getStoreAssetPurchaseCashCost: getStoreAssetPurchaseCashCost,
-          onShowStoreAssetEducation: onShowStoreAssetEducation,
-          layerLinkForStoreOfferSlot: layerLinkForStoreOfferSlot,
+          onShowItemInfo: onShowItemInfo,
+          stableKeyForStoreItem: stableKeyForStoreItem,
         ),
       ],
     );
@@ -1455,6 +1439,36 @@ class _ShuffleButton extends StatelessWidget {
   }
 }
 
+class _StoreOfferGridAnimatedCell extends StatelessWidget {
+  const _StoreOfferGridAnimatedCell({
+    super.key,
+    required this.left,
+    required this.top,
+    required this.width,
+    required this.height,
+    required this.child,
+  });
+
+  final double left;
+  final double top;
+  final double width;
+  final double height;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedPositioned(
+      duration: GameThemeConstants.storeOfferGridReorderDuration,
+      curve: Curves.easeOutCubic,
+      left: left,
+      top: top,
+      width: width,
+      height: height,
+      child: child,
+    );
+  }
+}
+
 class _StoreGrid extends StatelessWidget {
   const _StoreGrid({
     required this.items,
@@ -1464,8 +1478,8 @@ class _StoreGrid extends StatelessWidget {
     required this.statsSchema,
     required this.storeAssetAllocationPercentPerBuy,
     required this.getStoreAssetPurchaseCashCost,
-    required this.onShowStoreAssetEducation,
-    required this.layerLinkForStoreOfferSlot,
+    required this.onShowItemInfo,
+    required this.stableKeyForStoreItem,
   });
 
   final List<StoreItem> items;
@@ -1480,13 +1494,9 @@ class _StoreGrid extends StatelessWidget {
   final List<StatSchema> statsSchema;
   final int storeAssetAllocationPercentPerBuy;
   final int Function(StoreItemAsset asset) getStoreAssetPurchaseCashCost;
-  final void Function(
-    BuildContext context,
-    LayerLink layerLink,
-    StoreItemAsset asset,
-  )
-  onShowStoreAssetEducation;
-  final LayerLink Function(int index, StoreItem item) layerLinkForStoreOfferSlot;
+  final void Function(BuildContext context, GlobalKey cardKey, StoreItem item)
+  onShowItemInfo;
+  final String Function(StoreItem item) stableKeyForStoreItem;
 
   @override
   Widget build(BuildContext context) {
@@ -1505,58 +1515,87 @@ class _StoreGrid extends StatelessWidget {
         ),
       );
     }
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.8,
-        crossAxisSpacing: SpacingConstants.md,
-        mainAxisSpacing: SpacingConstants.md,
-      ),
-      itemCount: items.length,
-      itemBuilder: (context, index) {
-        final item = items[index];
-        final GlobalKey cardKey = keyForStoreCard(item);
-        return AnimatedSwitcher(
-          duration: const Duration(milliseconds: 360),
-          switchInCurve: Curves.easeOutCubic,
-          switchOutCurve: Curves.easeInCubic,
-          transitionBuilder: (child, animation) =>
-              FadeTransition(opacity: animation, child: child),
-          child: KeyedSubtree(
-            key: ValueKey<Object>(
-              '${item.runtimeType}_${item.id}_${identityHashCode(item)}',
-            ),
-            child: TweenAnimationBuilder<double>(
-              duration: const Duration(milliseconds: 420),
-              curve: Curves.easeOutBack,
-              tween: Tween(begin: 0.88, end: 1.0),
-              builder: (context, scale, child) => Transform.scale(
-                scale: scale,
-                alignment: Alignment.center,
-                child: child,
-              ),
-              child: KeyedSubtree(
-                key: cardKey,
-                child: _StoreItemCard(
-                  assetLayerLink: item is StoreItemAsset
-                      ? layerLinkForStoreOfferSlot(index, item)
-                      : null,
-                  item: item,
-                  canBuy: canBuy(item),
-                  onBuy: () {
-                    unawaited(onPurchase(item, cardKey, index));
-                    return true;
-                  },
-                  statsSchema: statsSchema,
-                  storeAssetAllocationPercentPerBuy:
-                      storeAssetAllocationPercentPerBuy,
-                  getStoreAssetPurchaseCashCost: getStoreAssetPurchaseCashCost,
-                  onShowStoreAssetEducation: onShowStoreAssetEducation,
+    const double crossAxisSpacing = SpacingConstants.md;
+    const double mainAxisSpacing = SpacingConstants.md;
+    const double gridTopPadding = SpacingConstants.md;
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final double maxWidth = constraints.maxWidth;
+        final double cellWidth =
+            (maxWidth -
+                crossAxisSpacing * (_storeOfferGridCrossAxisCount - 1)) /
+            _storeOfferGridCrossAxisCount;
+        final double cellHeight = cellWidth / _storeOfferGridChildAspectRatio;
+        final int rowCount = (items.length + 1) ~/ 2;
+        final double gridBodyHeight =
+            rowCount * cellHeight +
+            (rowCount > 1 ? (rowCount - 1) * mainAxisSpacing : 0);
+        final double totalHeight = gridTopPadding + gridBodyHeight;
+        final List<Widget> cells = <Widget>[];
+        for (int index = 0; index < items.length; index++) {
+          final StoreItem item = items[index];
+          final String stableKey = stableKeyForStoreItem(item);
+          final GlobalKey cardKey = keyForStoreCard(item);
+          final int columnIndex = index % _storeOfferGridCrossAxisCount;
+          final int rowIndex = index ~/ _storeOfferGridCrossAxisCount;
+          final double left = columnIndex * (cellWidth + crossAxisSpacing);
+          final double top = rowIndex * (cellHeight + mainAxisSpacing);
+          cells.add(
+            _StoreOfferGridAnimatedCell(
+              key: ValueKey<String>('store_offer_cell_$stableKey'),
+              left: left,
+              top: top,
+              width: cellWidth,
+              height: cellHeight,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 360),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                transitionBuilder:
+                    (Widget child, Animation<double> animation) =>
+                        FadeTransition(opacity: animation, child: child),
+                child: KeyedSubtree(
+                  key: ValueKey<String>(stableKey),
+                  child: TweenAnimationBuilder<double>(
+                    duration: const Duration(milliseconds: 420),
+                    curve: Curves.easeOutBack,
+                    tween: Tween<double>(begin: 0.88, end: 1.0),
+                    builder:
+                        (BuildContext context, double scale, Widget? child) =>
+                            Transform.scale(
+                              scale: scale,
+                              alignment: Alignment.center,
+                              child: child,
+                            ),
+                    child: KeyedSubtree(
+                      key: cardKey,
+                      child: _StoreItemCard(
+                        cardKey: cardKey,
+                        item: item,
+                        canBuy: canBuy(item),
+                        onBuy: () {
+                          unawaited(onPurchase(item, cardKey, index));
+                          return true;
+                        },
+                        statsSchema: statsSchema,
+                        storeAssetAllocationPercentPerBuy:
+                            storeAssetAllocationPercentPerBuy,
+                        getStoreAssetPurchaseCashCost:
+                            getStoreAssetPurchaseCashCost,
+                        onShowItemInfo: onShowItemInfo,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
+          );
+        }
+        return SizedBox(
+          height: totalHeight,
+          child: Padding(
+            padding: const EdgeInsets.only(top: gridTopPadding),
+            child: Stack(clipBehavior: Clip.hardEdge, children: cells),
           ),
         );
       },
@@ -1597,13 +1636,14 @@ class _ItemSlotsSection extends StatelessWidget {
             color: GameThemeConstants.outlineColorLight,
           ),
         ),
-        const SizedBox(height: SpacingConstants.sm),
+        const SizedBox(height: SpacingConstants.xs),
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
+          padding: EdgeInsets.zero,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 3,
-            childAspectRatio: 1.0,
+            childAspectRatio: 0.88,
             crossAxisSpacing: SpacingConstants.sm,
             mainAxisSpacing: SpacingConstants.sm,
           ),
@@ -1728,9 +1768,11 @@ class _ItemSlotDragFeedback extends StatelessWidget {
             const SizedBox(height: SpacingConstants.xs),
             Text(
               _formatLearningItemDisplayName(owned.name, owned.level),
-              style: Theme.of(
-                context,
-              ).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                height: 1.2,
+                color: GameThemeConstants.primaryDark,
+              ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
@@ -1802,30 +1844,36 @@ class _ItemSlotCard extends StatelessWidget {
                   ],
                 ),
               )
-            : FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.center,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      owned!.icon.toIconData(),
-                      size: 28,
-                      color: GameThemeConstants.primaryDark,
-                    ),
-                    const SizedBox(height: SpacingConstants.xs),
-                    Text(
-                      _formatLearningItemDisplayName(owned!.name, owned!.level),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
+            : Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        owned!.icon.toIconData(),
+                        size: 26,
+                        color: GameThemeConstants.primaryDark,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
+                      const SizedBox(height: SpacingConstants.xs),
+                      Text(
+                        _formatLearningItemDisplayName(
+                          owned!.name,
+                          owned!.level,
+                        ),
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              height: 1.2,
+                              color: GameThemeConstants.primaryDark,
+                            ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
                 ),
               ),
       ),
@@ -1850,6 +1898,7 @@ class _AssetSlotsSection extends StatefulWidget {
   final GlobalKey Function(String assetId) getAssetCardKey;
   final Map<String, PortfolioAsset> holdings;
   final int maxAssetSlots;
+
   /// Sum of per-asset allocation labels (each store buy adds 10% to a line).
   final int totalAllocatedPercent;
   final int Function(String assetId) getAssetAllocationPercent;
@@ -1862,28 +1911,39 @@ class _AssetSlotsSection extends StatefulWidget {
 }
 
 class _AssetSlotsSectionState extends State<_AssetSlotsSection> {
+  static const Duration _infoTooltipDuration = Duration(seconds: 5);
+  final GlobalKey<TooltipState> _infoTooltipKey = GlobalKey<TooltipState>();
+  bool _isInfoTooltipVisible = false;
   OverlayEntry? _tooltipOverlayEntry;
-  final Map<String, LayerLink> _holdingAssetLayerLinks = <String, LayerLink>{};
-
-  LayerLink _layerLinkForHolding(String assetId) {
-    return _holdingAssetLayerLinks.putIfAbsent(assetId, LayerLink.new);
-  }
+  String? _activeTooltipAssetId;
 
   void _showAssetTooltip(BuildContext context, PortfolioAsset asset) {
+    if (_activeTooltipAssetId == asset.assetId) {
+      _hideAssetTooltip();
+      return;
+    }
     _hideAssetTooltip();
+    final GlobalKey cardKey = widget.getAssetCardKey(asset.assetId);
+    final RenderBox? box =
+        cardKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) {
+      return;
+    }
+    final Offset cardPosition = box.localToGlobal(Offset.zero);
+    final Size cardSize = box.size;
+    _activeTooltipAssetId = asset.assetId;
     _tooltipOverlayEntry = OverlayEntry(
-      builder: (overlayContext) => Positioned.fill(
-        child: _AssetTooltipOverlay(
-          layerLink: _layerLinkForHolding(asset.assetId),
-          asset: asset,
-          statsSchema: widget.statsSchema,
-          totalReturnPercent: widget.getAssetTotalReturnPercent(asset),
-          onSell: () {
-            widget.onSell(asset.assetId);
-            _hideAssetTooltip();
-          },
-          onDismiss: _hideAssetTooltip,
-        ),
+      builder: (overlayContext) => _AssetTooltipPositioned(
+        cardPosition: cardPosition,
+        cardSize: cardSize,
+        asset: asset,
+        statsSchema: widget.statsSchema,
+        totalReturnPercent: widget.getAssetTotalReturnPercent(asset),
+        onSell: () {
+          widget.onSell(asset.assetId);
+          _hideAssetTooltip();
+        },
+        onDismiss: _hideAssetTooltip,
       ),
     );
     Overlay.of(context, rootOverlay: true).insert(_tooltipOverlayEntry!);
@@ -1892,6 +1952,7 @@ class _AssetSlotsSectionState extends State<_AssetSlotsSection> {
   void _hideAssetTooltip() {
     _tooltipOverlayEntry?.remove();
     _tooltipOverlayEntry = null;
+    _activeTooltipAssetId = null;
   }
 
   @override
@@ -1899,10 +1960,11 @@ class _AssetSlotsSectionState extends State<_AssetSlotsSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        Stack(
+          clipBehavior: Clip.none,
           children: [
-            Expanded(
+            Padding(
+              padding: const EdgeInsets.only(right: SpacingConstants.xl),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1925,28 +1987,52 @@ class _AssetSlotsSectionState extends State<_AssetSlotsSection> {
                     '${widget.totalAllocatedPercent}% / 100% allocation budget '
                     '(each buy tags 10%; new assets rebalance existing tags)',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: GameThemeConstants.outlineColorLight,
-                          fontSize: 11,
-                        ),
+                      color: GameThemeConstants.outlineColorLight,
+                      fontSize: 11,
+                    ),
                   ),
                 ],
               ),
             ),
-            IconButton(
-              onPressed: () {},
-              tooltip:
-                  'Of course you could diversify more in real life Mr. Buffet',
-              icon: Icon(
-                Icons.info_outline,
-                color: GameThemeConstants.outlineColorLight,
-                size: 22,
+            Positioned(
+              top: 0,
+              right: 0,
+              child: Tooltip(
+                key: _infoTooltipKey,
+                message:
+                    'Of course you could diversify more in real life Mr. Buffet',
+                triggerMode: TooltipTriggerMode.manual,
+                showDuration: _infoTooltipDuration,
+                child: GestureDetector(
+                  onTap: () {
+                    if (_isInfoTooltipVisible) {
+                      _isInfoTooltipVisible = false;
+                      Tooltip.dismissAllToolTips();
+                    } else {
+                      _infoTooltipKey.currentState?.ensureTooltipVisible();
+                      _isInfoTooltipVisible = true;
+                      Future<void>.delayed(_infoTooltipDuration, () {
+                        _isInfoTooltipVisible = false;
+                      });
+                    }
+                  },
+                  child: SizedBox(
+                    width: 36,
+                    height: 36,
+                    child: Center(
+                      child: Icon(
+                        Icons.info_outline,
+                        color: GameThemeConstants.outlineColorLight,
+                        size: 22,
+                      ),
+                    ),
+                  ),
+                ),
               ),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
             ),
           ],
         ),
-        const SizedBox(height: SpacingConstants.sm),
+        const SizedBox(height: SpacingConstants.xs),
         KeyedSubtree(
           key: widget.assetSectionContentKey,
           child: widget.holdings.isEmpty
@@ -1964,36 +2050,31 @@ class _AssetSlotsSectionState extends State<_AssetSlotsSection> {
                     ),
                   ),
                 )
-              : LayoutBuilder(
-                  builder: (context, constraints) {
-                    final width = constraints.maxWidth;
-                    final crossCount = width > 400 ? 5 : (width > 300 ? 4 : 3);
-                    return GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: crossCount,
-                        childAspectRatio: 1.15,
-                        crossAxisSpacing: SpacingConstants.sm,
-                        mainAxisSpacing: SpacingConstants.sm,
+              : GridView.builder(
+                  padding: EdgeInsets.symmetric(vertical: SpacingConstants.sm),
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent:
+                        SpacingConstants.xxl * 2 + SpacingConstants.sm,
+                    childAspectRatio: 1.25,
+                    crossAxisSpacing: SpacingConstants.sm,
+                    mainAxisSpacing: SpacingConstants.sm,
+                  ),
+                  itemCount: widget.holdings.length,
+                  itemBuilder: (context, index) {
+                    final asset = widget.holdings.values.elementAt(index);
+                    final allocationPercent = widget
+                        .getAssetAllocationPercent(asset.assetId)
+                        .toDouble();
+                    return _AssetSlotCard(
+                      key: widget.getAssetCardKey(asset.assetId),
+                      asset: asset,
+                      totalReturnPercent: widget.getAssetTotalReturnPercent(
+                        asset,
                       ),
-                      itemCount: widget.holdings.length,
-                      itemBuilder: (context, index) {
-                        final asset = widget.holdings.values.elementAt(index);
-                        final allocationPercent = widget
-                            .getAssetAllocationPercent(asset.assetId)
-                            .toDouble();
-                        return _AssetSlotCard(
-                          key: widget.getAssetCardKey(asset.assetId),
-                          layerLink: _layerLinkForHolding(asset.assetId),
-                          asset: asset,
-                          totalReturnPercent: widget.getAssetTotalReturnPercent(
-                            asset,
-                          ),
-                          allocationPercent: allocationPercent,
-                          onTap: () => _showAssetTooltip(context, asset),
-                        );
-                      },
+                      allocationPercent: allocationPercent,
+                      onTap: () => _showAssetTooltip(context, asset),
                     );
                   },
                 ),
@@ -2003,9 +2084,10 @@ class _AssetSlotsSectionState extends State<_AssetSlotsSection> {
   }
 }
 
-class _AssetTooltipOverlay extends StatelessWidget {
-  const _AssetTooltipOverlay({
-    required this.layerLink,
+class _AssetTooltipPositioned extends StatelessWidget {
+  const _AssetTooltipPositioned({
+    required this.cardPosition,
+    required this.cardSize,
     required this.asset,
     required this.statsSchema,
     required this.totalReturnPercent,
@@ -2013,7 +2095,8 @@ class _AssetTooltipOverlay extends StatelessWidget {
     required this.onDismiss,
   });
 
-  final LayerLink layerLink;
+  final Offset cardPosition;
+  final Size cardSize;
   final PortfolioAsset asset;
   final List<StatSchema> statsSchema;
   final double totalReturnPercent;
@@ -2031,23 +2114,27 @@ class _AssetTooltipOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Stack(
-      clipBehavior: Clip.none,
       children: [
         Positioned.fill(
-          child: IgnorePointer(
-            ignoring: true,
+          child: GestureDetector(
+            onTap: onDismiss,
+            behavior: HitTestBehavior.opaque,
             child: const SizedBox.expand(),
           ),
         ),
-        ComicTooltipFollowerBelow(
-          layerLink: layerLink,
-          tooltipWidth: 200,
-          content: _AssetTooltipContent(
-            asset: asset,
-            totalReturnPercent: totalReturnPercent,
-            getStatDisplayName: _getStatDisplayName,
-            onSell: onSell,
-            onDismiss: onDismiss,
+        ComicTooltipAnchoredPopup(
+          cardPosition: cardPosition,
+          cardSize: cardSize,
+          tooltipWidth: 220,
+          content: GestureDetector(
+            onTap: () {},
+            behavior: HitTestBehavior.opaque,
+            child: _AssetTooltipContent(
+              asset: asset,
+              totalReturnPercent: totalReturnPercent,
+              getStatDisplayName: _getStatDisplayName,
+              onSell: onSell,
+            ),
           ),
         ),
       ],
@@ -2061,14 +2148,12 @@ class _AssetTooltipContent extends StatelessWidget {
     required this.totalReturnPercent,
     required this.getStatDisplayName,
     required this.onSell,
-    required this.onDismiss,
   });
 
   final PortfolioAsset asset;
   final double totalReturnPercent;
   final String Function(String) getStatDisplayName;
   final VoidCallback onSell;
-  final VoidCallback onDismiss;
 
   @override
   Widget build(BuildContext context) {
@@ -2099,33 +2184,12 @@ class _AssetTooltipContent extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Text(
-                  asset.name,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: GameThemeConstants.primaryDark,
-                  ),
-                ),
-              ),
-              IconButton(
-                onPressed: onDismiss,
-                tooltip: 'Close',
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(
-                  minWidth: 32,
-                  minHeight: 32,
-                ),
-                icon: Icon(
-                  Icons.close,
-                  size: 20,
-                  color: GameThemeConstants.outlineColor,
-                ),
-              ),
-            ],
+          Text(
+            asset.name,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: GameThemeConstants.primaryDark,
+            ),
           ),
           const SizedBox(height: SpacingConstants.xs),
           Text(
@@ -2195,14 +2259,12 @@ class _AssetTooltipContent extends StatelessWidget {
 class _AssetSlotCard extends StatelessWidget {
   const _AssetSlotCard({
     super.key,
-    required this.layerLink,
     required this.asset,
     required this.totalReturnPercent,
     required this.allocationPercent,
     required this.onTap,
   });
 
-  final LayerLink layerLink;
   final PortfolioAsset asset;
   final double totalReturnPercent;
   final double allocationPercent;
@@ -2212,59 +2274,56 @@ class _AssetSlotCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: CompositedTransformTarget(
-        link: layerLink,
-        child: GameCard(
-          padding: const EdgeInsets.all(SpacingConstants.xs),
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.center,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                asset.icon == 'attach_money'
-                    ? Image.asset(_coinAssetPath, width: 22, height: 22)
-                    : Icon(
-                        asset.icon.toIconData(),
-                        size: 22,
-                        color: GameThemeConstants.primaryDark,
-                      ),
-                const SizedBox(height: SpacingConstants.xs),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      totalReturnPercent >= 0
-                          ? Icons.arrow_drop_up
-                          : Icons.arrow_drop_down,
-                      size: 16,
+      child: GameCard(
+        padding: const EdgeInsets.all(SpacingConstants.xs),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.topCenter,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              asset.icon == 'attach_money'
+                  ? Image.asset(_coinAssetPath, width: 22, height: 22)
+                  : Icon(
+                      asset.icon.toIconData(),
+                      size: 22,
+                      color: GameThemeConstants.primaryDark,
+                    ),
+              const SizedBox(height: SpacingConstants.xs),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    totalReturnPercent >= 0
+                        ? Icons.arrow_drop_up
+                        : Icons.arrow_drop_down,
+                    size: 16,
+                    color: totalReturnPercent >= 0
+                        ? GameThemeConstants.statPositive
+                        : GameThemeConstants.statNegative,
+                  ),
+                  Text(
+                    '${totalReturnPercent >= 0 ? '+' : ''}${totalReturnPercent.toStringAsFixed(1)}%',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: totalReturnPercent >= 0
                           ? GameThemeConstants.statPositive
                           : GameThemeConstants.statNegative,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 10,
                     ),
-                    Text(
-                      '${totalReturnPercent >= 0 ? '+' : ''}${totalReturnPercent.toStringAsFixed(1)}%',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: totalReturnPercent >= 0
-                            ? GameThemeConstants.statPositive
-                            : GameThemeConstants.statNegative,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 10,
-                      ),
-                    ),
-                  ],
-                ),
-                Text(
-                  '${allocationPercent.toStringAsFixed(0)}% alloc.',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: GameThemeConstants.outlineColorLight,
-                    fontSize: 9,
                   ),
+                ],
+              ),
+              Text(
+                '${allocationPercent.toStringAsFixed(0)}% alloc.',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: GameThemeConstants.outlineColorLight,
+                  fontSize: 9,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -2488,30 +2547,25 @@ class _AnimatedInvestButtonState extends State<_AnimatedInvestButton>
 
 class _StoreItemCard extends StatelessWidget {
   const _StoreItemCard({
-    required this.assetLayerLink,
+    required this.cardKey,
     required this.item,
     required this.canBuy,
     required this.onBuy,
     required this.statsSchema,
     required this.storeAssetAllocationPercentPerBuy,
     required this.getStoreAssetPurchaseCashCost,
-    required this.onShowStoreAssetEducation,
+    required this.onShowItemInfo,
   });
 
-  /// Layer link for [CompositedTransformTarget]; null for knowledge items.
-  final LayerLink? assetLayerLink;
+  final GlobalKey cardKey;
   final StoreItem item;
   final bool canBuy;
   final bool Function() onBuy;
   final List<StatSchema> statsSchema;
   final int storeAssetAllocationPercentPerBuy;
   final int Function(StoreItemAsset asset) getStoreAssetPurchaseCashCost;
-  final void Function(
-    BuildContext context,
-    LayerLink layerLink,
-    StoreItemAsset asset,
-  )
-  onShowStoreAssetEducation;
+  final void Function(BuildContext context, GlobalKey cardKey, StoreItem item)
+  onShowItemInfo;
 
   String _getStatDisplayName(String statId) {
     return statsSchema
@@ -2530,16 +2584,11 @@ class _StoreItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final card = GameCard(
+    return GameCard(
       backgroundColor: _getCardBackgroundColor(),
       padding: const EdgeInsets.all(SpacingConstants.sm),
       child: _buildCardLayout(context),
     );
-    final link = assetLayerLink;
-    if (link != null) {
-      return CompositedTransformTarget(link: link, child: card);
-    }
-    return card;
   }
 
   Widget _buildCardLayout(BuildContext context) {
@@ -2561,48 +2610,42 @@ class _StoreItemCard extends StatelessWidget {
                         color: GameThemeConstants.primaryDark,
                       ),
               ),
-              if (item case final StoreItemAsset storeAsset)
-                Positioned(
-                  top: 0,
-                  right: 0,
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () {
-                        final l = assetLayerLink;
-                        if (l != null) {
-                          onShowStoreAssetEducation(context, l, storeAsset);
-                        }
-                      },
-                      borderRadius: BorderRadius.circular(20),
-                      child: Container(
-                        padding: const EdgeInsets.all(3),
-                        decoration: BoxDecoration(
-                          color: GameThemeConstants.creamSurface,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: GameThemeConstants.outlineColor,
-                            width: GameThemeConstants.outlineThicknessSmall,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: GameThemeConstants.outlineColor.withValues(
-                                alpha: 0.12,
-                              ),
-                              offset: const Offset(0, 2),
-                              blurRadius: 0,
+              Positioned(
+                top: 0,
+                right: 0,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => onShowItemInfo(context, cardKey, item),
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        color: GameThemeConstants.creamSurface,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: GameThemeConstants.outlineColor,
+                          width: GameThemeConstants.outlineThicknessSmall,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: GameThemeConstants.outlineColor.withValues(
+                              alpha: 0.12,
                             ),
-                          ],
-                        ),
-                        child: Icon(
-                          Icons.help_outline,
-                          size: 16,
-                          color: GameThemeConstants.primaryDark,
-                        ),
+                            offset: const Offset(0, 2),
+                            blurRadius: 0,
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        Icons.help_outline,
+                        size: 16,
+                        color: GameThemeConstants.primaryDark,
                       ),
                     ),
                   ),
                 ),
+              ),
             ],
           ),
         ),
@@ -2746,6 +2789,216 @@ class _StoreItemCard extends StatelessWidget {
               color: Colors.white,
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StoreAssetEducationPositioned extends StatelessWidget {
+  const _StoreAssetEducationPositioned({
+    required this.cardPosition,
+    required this.cardSize,
+    required this.asset,
+    required this.onDismiss,
+  });
+
+  final Offset cardPosition;
+  final Size cardSize;
+  final StoreItemAsset asset;
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: GestureDetector(
+            onTap: onDismiss,
+            behavior: HitTestBehavior.opaque,
+            child: const SizedBox.expand(),
+          ),
+        ),
+        ComicTooltipAnchoredPopup(
+          cardPosition: cardPosition,
+          cardSize: cardSize,
+          tooltipWidth: kStoreAssetEducationTooltipWidth,
+          content: GestureDetector(
+            onTap: () {},
+            behavior: HitTestBehavior.opaque,
+            child: StoreAssetEducationContent(asset: asset),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _KnowledgeItemInfoPositioned extends StatelessWidget {
+  const _KnowledgeItemInfoPositioned({
+    required this.cardPosition,
+    required this.cardSize,
+    required this.item,
+    required this.statsSchema,
+    required this.onDismiss,
+  });
+
+  final Offset cardPosition;
+  final Size cardSize;
+  final StoreItemItem item;
+  final List<StatSchema> statsSchema;
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: GestureDetector(
+            onTap: onDismiss,
+            behavior: HitTestBehavior.opaque,
+            child: const SizedBox.expand(),
+          ),
+        ),
+        ComicTooltipAnchoredPopup(
+          cardPosition: cardPosition,
+          cardSize: cardSize,
+          tooltipWidth: 240,
+          content: GestureDetector(
+            onTap: () {},
+            behavior: HitTestBehavior.opaque,
+            child: _KnowledgeItemInfoContent(
+              item: item,
+              statsSchema: statsSchema,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _KnowledgeItemInfoContent extends StatelessWidget {
+  const _KnowledgeItemInfoContent({
+    required this.item,
+    required this.statsSchema,
+  });
+
+  final StoreItemItem item;
+  final List<StatSchema> statsSchema;
+
+  StatSchema? _schemaFor(String statId) =>
+      statsSchema.where((s) => s.id == statId).firstOrNull;
+
+  @override
+  Widget build(BuildContext context) {
+    final scaledEffects = item.getScaledStatEffects();
+    final visibleEffects = scaledEffects.entries
+        .where((e) => e.key != 'money')
+        .toList();
+    return Container(
+      padding: const EdgeInsets.all(SpacingConstants.sm),
+      decoration: BoxDecoration(
+        color: GameThemeConstants.creamSurface,
+        borderRadius: BorderRadius.circular(GameThemeConstants.radiusMedium),
+        border: Border.all(
+          color: GameThemeConstants.outlineColor,
+          width: GameThemeConstants.outlineThickness,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: GameThemeConstants.outlineColor.withValues(alpha: 0.15),
+            offset: const Offset(0, GameThemeConstants.bevelOffset),
+            blurRadius: 0,
+            spreadRadius: 0,
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  item.level > 1
+                      ? '${item.name} (Lv.${item.level})'
+                      : item.name,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: GameThemeConstants.primaryDark,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (item.flavourText != null &&
+              item.flavourText!.trim().isNotEmpty) ...[
+            const SizedBox(height: SpacingConstants.xs),
+            Text(
+              '"${item.flavourText}"',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: GameThemeConstants.outlineColorLight,
+                fontStyle: FontStyle.italic,
+                height: 1.3,
+              ),
+            ),
+          ],
+          if (visibleEffects.isNotEmpty) ...[
+            const SizedBox(height: SpacingConstants.sm),
+            ...visibleEffects.map((e) {
+              final schema = _schemaFor(e.key);
+              final label = schema?.displayName ?? e.key;
+              final description = schema?.description ?? '';
+              final isPositive = e.value > 0;
+              final color = isPositive
+                  ? GameThemeConstants.statPositive
+                  : GameThemeConstants.statNegative;
+              final valueStr =
+                  '${isPositive ? '+' : ''}${e.value == e.value.roundToDouble() ? e.value.toStringAsFixed(0) : e.value.toStringAsFixed(1)}';
+              return Padding(
+                padding: const EdgeInsets.only(bottom: SpacingConstants.xs),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            label,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: color,
+                                ),
+                          ),
+                        ),
+                        Text(
+                          valueStr,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: color,
+                              ),
+                        ),
+                      ],
+                    ),
+                    if (description.isNotEmpty)
+                      Text(
+                        description,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: GameThemeConstants.outlineColorLight,
+                          fontSize: 10,
+                          height: 1.3,
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            }),
+          ],
         ],
       ),
     );

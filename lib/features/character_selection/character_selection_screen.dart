@@ -111,72 +111,81 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
                 ),
               );
             }
-            return Column(
+            final double bottomInset =
+                MediaQuery.paddingOf(context).bottom;
+            final double scrollBottomPadding = bottomInset +
+                SpacingConstants.md * 2 +
+                kMinInteractiveDimension;
+            return Stack(
+              clipBehavior: Clip.none,
               children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(
-                      SpacingConstants.md,
-                      SpacingConstants.sm,
-                      SpacingConstants.md,
-                      SpacingConstants.sm,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _SelectedCharacterSlot(
-                          selectedCharacter: _selectedCharacter,
-                        ),
-                        const SizedBox(height: SpacingConstants.sm),
-                        Text(
-                          'Select a character',
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: GameThemeConstants.primaryDark,
-                              ),
-                        ),
-                        const SizedBox(height: SpacingConstants.sm),
-                        GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                childAspectRatio: 1.5,
-                                crossAxisSpacing: SpacingConstants.sm,
-                                mainAxisSpacing: SpacingConstants.sm,
-                              ),
-                          itemCount: controller.characters.length,
-                          itemBuilder: (context, index) {
-                            final character = controller.characters[index];
-                            final isSelected =
-                                _selectedCharacter?.id == character.id;
-                            return _CharacterListItem(
-                              character: character,
-                              isSelected: isSelected,
-                              onTap: () {
-                                setState(() {
-                                  _selectedCharacter = character;
-                                });
-                              },
-                            );
-                          },
-                        ),
-                      ],
-                    ),
+                SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(
+                    SpacingConstants.md,
+                    SpacingConstants.sm,
+                    SpacingConstants.md,
+                    SpacingConstants.sm + scrollBottomPadding,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _SelectedCharacterSlot(
+                        selectedCharacter: _selectedCharacter,
+                      ),
+                      const SizedBox(height: SpacingConstants.sm),
+                      Text(
+                        'Select a character',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: GameThemeConstants.primaryDark,
+                            ),
+                      ),
+                      const SizedBox(height: SpacingConstants.sm),
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              childAspectRatio: 1.5,
+                              crossAxisSpacing: SpacingConstants.sm,
+                              mainAxisSpacing: SpacingConstants.sm,
+                            ),
+                        itemCount: controller.characters.length,
+                        itemBuilder: (context, index) {
+                          final character = controller.characters[index];
+                          final isSelected =
+                              _selectedCharacter?.id == character.id;
+                          return _CharacterListItem(
+                            character: character,
+                            isSelected: isSelected,
+                            onTap: () {
+                              setState(() {
+                                _selectedCharacter = character;
+                              });
+                            },
+                          );
+                        },
+                      ),
+                    ],
                   ),
                 ),
-                SafeArea(
-                  top: false,
-                  child: Padding(
-                    padding: const EdgeInsets.all(SpacingConstants.md),
-                    child: GameButton(
-                      label: 'Confirm Choice',
-                      onPressed: _selectedCharacter != null
-                          ? _onConfirmSelection
-                          : null,
-                      variant: GameButtonVariant.primary,
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: SafeArea(
+                    top: false,
+                    child: Padding(
+                      padding: const EdgeInsets.all(SpacingConstants.md),
+                      child: GameButton(
+                        label: 'Confirm Choice',
+                        onPressed: _selectedCharacter != null
+                            ? _onConfirmSelection
+                            : null,
+                        variant: GameButtonVariant.primary,
+                      ),
                     ),
                   ),
                 ),
@@ -233,9 +242,7 @@ class _SelectedCharacterSlot extends StatelessWidget {
           width: avatarWidth,
           child: Column(
             children: [
-              Expanded(
-                child: Center(child: _buildCharacterAvatar(character)),
-              ),
+              Expanded(child: Center(child: _buildCharacterAvatar(character))),
               Text(
                 character.name,
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
@@ -250,42 +257,49 @@ class _SelectedCharacterSlot extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(width: SpacingConstants.sm),
+        const SizedBox(width: SpacingConstants.lg),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              CharacterPreviewStatBars(stats: character.initialStats),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: SpacingConstants.sm,
-                  vertical: SpacingConstants.xs,
+          child: Padding(
+            padding: const EdgeInsets.only(
+              right: SpacingConstants.lg,
+              top: SpacingConstants.lg,
+              bottom: SpacingConstants.lg,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                CharacterPreviewStatBars(stats: character.initialStats),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: SpacingConstants.sm,
+                    vertical: SpacingConstants.xs,
+                  ),
+                  decoration: BoxDecoration(
+                    color: GameThemeConstants.accentLight.withValues(
+                      alpha: 0.28,
+                    ),
+                    borderRadius: BorderRadius.circular(
+                      SpacingConstants.gameRadiusSm,
+                    ),
+                    border: Border.all(
+                      color: GameThemeConstants.outlineColor,
+                      width: GameThemeConstants.outlineThicknessSmall,
+                    ),
+                  ),
+                  child: Text(
+                    character.uniqueSkill,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: GameThemeConstants.outlineColorLight,
+                      height: 1.2,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-                decoration: BoxDecoration(
-                  color: GameThemeConstants.accentLight.withValues(
-                    alpha: 0.28,
-                  ),
-                  borderRadius: BorderRadius.circular(
-                    SpacingConstants.gameRadiusSm,
-                  ),
-                  border: Border.all(
-                    color: GameThemeConstants.outlineColor,
-                    width: GameThemeConstants.outlineThicknessSmall,
-                  ),
-                ),
-                child: Text(
-                  character.uniqueSkill,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: GameThemeConstants.outlineColorLight,
-                    height: 1.2,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ],
@@ -325,16 +339,16 @@ class _CharacterListItem extends StatelessWidget {
             children: [
               Expanded(child: _buildCharacterAvatar(character)),
               const SizedBox(height: SpacingConstants.xs),
-            Text(
-              character.name,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
+              Text(
+                character.name,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
         ),
       ),

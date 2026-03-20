@@ -57,6 +57,11 @@ abstract final class GameThemeConstants {
   /// Store: fly item from offer grid to knowledge/assets (fast, not distracting).
   static const Duration storePurchaseFlyDuration = Duration(milliseconds: 420);
 
+  /// Store offer grid: remaining cards slide into new slots after a buy or shuffle.
+  static const Duration storeOfferGridReorderDuration = Duration(
+    milliseconds: 320,
+  );
+
   /// Simulation chart: smooth extension when each new portfolio sample arrives.
   static const Duration simulationChartTailDuration = Duration(
     milliseconds: 220,

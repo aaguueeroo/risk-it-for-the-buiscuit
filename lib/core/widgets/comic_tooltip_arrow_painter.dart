@@ -41,5 +41,10 @@ class ComicTooltipArrowPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant ComicTooltipArrowPainter oldDelegate) {
+    return oldDelegate.arrowCenterX != arrowCenterX ||
+        oldDelegate.pointingDown != pointingDown ||
+        oldDelegate.color != color ||
+        oldDelegate.borderColor != borderColor;
+  }
 }

@@ -1,6 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:start_hack_2026/core/constants/game_theme_constants.dart';
+import 'package:start_hack_2026/core/constants/spacing_constants.dart';
 import 'package:start_hack_2026/engine/game_engine.dart';
 
 /// Portfolio evolution chart matching the store screen overlay.
@@ -140,6 +141,33 @@ class PortfolioEvolutionChart extends StatelessWidget {
             border: Border.all(
               color: GameThemeConstants.outlineColor,
               width: GameThemeConstants.outlineThicknessSmall,
+            ),
+          ),
+          lineTouchData: LineTouchData(
+            enabled: true,
+            handleBuiltInTouches: true,
+            touchTooltipData: LineTouchTooltipData(
+              getTooltipItems: (List<LineBarSpot> touchedSpots) {
+                return touchedSpots.map((LineBarSpot spot) {
+                  final int index =
+                      spot.x.round().clamp(0, dataPoints.length - 1);
+                  final PortfolioHistoryPoint point = dataPoints[index];
+                  return LineTooltipItem(
+                    'Year ${point.year}\n'
+                    '\$${spot.y.toStringAsFixed(0)}',
+                    const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                    ),
+                  );
+                }).toList();
+              },
+              getTooltipColor: (_) => GameThemeConstants.darkNavy,
+              maxContentWidth: 180,
+              tooltipPadding: const EdgeInsets.symmetric(
+                horizontal: SpacingConstants.sm,
+                vertical: SpacingConstants.xs,
+              ),
             ),
           ),
         ),

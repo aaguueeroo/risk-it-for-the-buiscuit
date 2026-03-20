@@ -2,7 +2,7 @@
   "items": [
     {
       "id": "read_book",
-      "name": "Read a Book",
+      "name": "Read the Wiki (For Real)",
       "icon": "menu_book",
       "price": 200,
       "level": 1,
@@ -14,7 +14,7 @@
     },
     {
       "id": "online_course",
-      "name": "Take an Online Course",
+      "name": "2am YouTube University",
       "icon": "school",
       "price": 500,
       "level": 1,
@@ -26,7 +26,7 @@
     },
     {
       "id": "financial_advisor",
-      "name": "Consult a Financial Advisor",
+      "name": "Money Adult on Speed Dial",
       "icon": "person",
       "price": 800,
       "level": 1,
@@ -38,7 +38,7 @@
     },
     {
       "id": "mindfulness",
-      "name": "Practice Mindfulness",
+      "name": "Touch Grass & Chill",
       "icon": "self_improvement",
       "price": 150,
       "level": 1,
@@ -49,7 +49,7 @@
     },
     {
       "id": "diversification_habit",
-      "name": "Diversification Habit",
+      "name": "Eggs in Many Baskets Protocol",
       "icon": "pie_chart",
       "price": 350,
       "level": 1,
@@ -61,7 +61,7 @@
     },
     {
       "id": "automate_investments",
-      "name": "Automate Investments",
+      "name": "DCA Goes Brrr",
       "icon": "autorenew",
       "price": 300,
       "level": 1,
@@ -73,7 +73,7 @@
     },
     {
       "id": "emergency_fund",
-      "name": "Emergency Fund",
+      "name": "Oops I Need Cash RN Fund",
       "icon": "savings",
       "price": 400,
       "level": 1,
