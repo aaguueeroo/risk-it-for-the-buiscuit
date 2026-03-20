@@ -658,6 +658,8 @@ class _SharedSimulationChart extends StatelessWidget {
         return GameThemeConstants.warningDark;
       case SimulationEventType.panicSell:
         return GameThemeConstants.statNegative;
+      case SimulationEventType.life:
+        return GameThemeConstants.dangerDark;
     }
   }
 }
