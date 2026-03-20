@@ -19,5 +19,6 @@ abstract final class SpacingConstants {
   static const double gameRadiusLg = 20.0;
   static const double gameRadiusPill = 24.0;
 
-  static const double selectedCharacterSlotHeight = 200.0;
+  /// Preview card: avatar + RPG stat bars + skill blurb (avoid vertical overflow).
+  static const double selectedCharacterSlotHeight = 248.0;
 }
