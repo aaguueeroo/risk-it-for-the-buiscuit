@@ -311,6 +311,13 @@ class _StoreScreenState extends State<StoreScreen> {
                                         _getBaselineValueForComparison(
                                           controller,
                                         ),
+                                    showYearOverYearComparison:
+                                        controller.currentYear > 1,
+                                    comparisonYearLabel:
+                                        controller.currentYear > 1
+                                        ? (controller.currentYear - 1)
+                                              .toString()
+                                        : null,
                                   ),
                                   const SizedBox(height: SpacingConstants.lg),
                                   _BuySection(
@@ -707,22 +714,51 @@ class _TotalCapitalContainer extends StatelessWidget {
   const _TotalCapitalContainer({
     required this.totalCapital,
     required this.baselineValue,
+    required this.showYearOverYearComparison,
+    required this.comparisonYearLabel,
   });
 
   final double totalCapital;
   final double? baselineValue;
+  final bool showYearOverYearComparison;
+  final String? comparisonYearLabel;
 
   @override
   Widget build(BuildContext context) {
-    final hasComparison = baselineValue != null;
-    final diff = hasComparison ? totalCapital - baselineValue! : 0.0;
+    final hasBaseline = baselineValue != null;
+    final diff = hasBaseline ? totalCapital - baselineValue! : 0.0;
     final isGrowing = diff > 0;
     final isDecreasing = diff < 0;
-    final valueColor = isGrowing
-        ? GameThemeConstants.statPositive
-        : isDecreasing
-        ? GameThemeConstants.statNegative
+    final valueColor = hasBaseline
+        ? (isGrowing
+              ? GameThemeConstants.statPositive
+              : isDecreasing
+              ? GameThemeConstants.statNegative
+              : GameThemeConstants.primaryDark)
         : GameThemeConstants.primaryDark;
+
+    final showYoYPanel = showYearOverYearComparison &&
+        hasBaseline &&
+        comparisonYearLabel != null;
+    final baselineNonZero =
+        hasBaseline && baselineValue!.abs() >= 1e-6;
+    final pctChange = baselineNonZero ? (diff / baselineValue!) * 100.0 : null;
+
+    final deltaColor = !hasBaseline
+        ? GameThemeConstants.outlineColorLight
+        : (isGrowing
+            ? GameThemeConstants.statPositive
+            : isDecreasing
+            ? GameThemeConstants.statNegative
+            : GameThemeConstants.outlineColorLight);
+
+    final String absLine = !hasBaseline
+        ? '—'
+        : '${diff >= 0 ? '+' : '−'}${diff.abs().toStringAsFixed(0)}';
+    final String pctLine = pctChange == null
+        ? (baselineNonZero ? '0.0%' : '—')
+        : '${pctChange >= 0 ? '+' : ''}${pctChange.toStringAsFixed(1)}%';
+
     return SizedBox(
       width: double.infinity,
       child: GameCard(
@@ -736,14 +772,84 @@ class _TotalCapitalContainer extends StatelessWidget {
                 fontWeight: FontWeight.w500,
               ),
             ),
-            const SizedBox(height: SpacingConstants.xs),
-            Text(
-              totalCapital.toStringAsFixed(0),
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                fontSize: 48,
-                color: valueColor,
-              ),
+            const SizedBox(height: SpacingConstants.sm),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                if (showYoYPanel) ...[
+                  Expanded(
+                    flex: 2,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'vs year $comparisonYearLabel',
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                            color: GameThemeConstants.outlineColorLight,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          absLine + '\$',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                            color: deltaColor,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        Text(
+                          pctLine,
+                          style: Theme.of(context).textTheme.titleSmall
+                              ?.copyWith(
+                            color: deltaColor,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                Expanded(
+                  flex: showYoYPanel ? 3 : 1,
+                  child: Row(
+                    mainAxisAlignment: showYoYPanel
+                        ? MainAxisAlignment.end
+                        : MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.attach_money,
+                        size: 48,
+                        color: valueColor,
+                      ),
+                      const SizedBox(width: SpacingConstants.xs),
+                      Flexible(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: showYoYPanel
+                              ? Alignment.centerRight
+                              : Alignment.center,
+                          child: Text(
+                            totalCapital.toStringAsFixed(0),
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineMedium
+                                ?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 48,
+                              color: valueColor,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ],
         ),
